@@ -1,16 +1,16 @@
 #include "glfw_window.h"
 
-CustomWindow::CustomWindow() {
+MultiPlatformWindow::MultiPlatformWindow() {
     _window = nullptr;
 }
 
-void CustomWindow::OpenWindow(){
+void MultiPlatformWindow::OpenWindow(){
     glfwInit();
 
     _window = glfwCreateWindow(800, 600, "My awesome engine window", nullptr, nullptr);
 }
 
-bool CustomWindow::Update(){
+bool MultiPlatformWindow::Update(){
     glfwPollEvents();
 
    

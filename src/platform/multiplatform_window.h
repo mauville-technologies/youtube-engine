@@ -3,9 +3,9 @@
 #include <youtube_engine/platform/window.h>
 #include <GLFW/glfw3.h>
 
-class CustomWindow : public Window {
+class MultiPlatformWindow : public Window {
 public:
-    CustomWindow();
+    MultiPlatformWindow();
     virtual void OpenWindow() override;
     virtual bool Update() override;
 private:
