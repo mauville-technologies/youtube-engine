@@ -10,7 +10,19 @@ public:
         if (_window != nullptr) return;
         _window = std::unique_ptr<Window>(window);
     }
+
+    static inline void ShutdownServices() {
+        // ensure we shut down services in the correct order
+        // usually opposite order of initialized.
+        shutdownWindow();
+    }
+
 private:
 
     static inline std::unique_ptr<Window> _window = nullptr;
+
+    static inline void shutdownWindow() {
+        _window.reset();
+        _window = nullptr;
+    }
 };

@@ -1,13 +1,13 @@
-#include "glfw_window.h"
+#include "multiplatform_window.h"
 
 MultiPlatformWindow::MultiPlatformWindow() {
     _window = nullptr;
 }
 
-void MultiPlatformWindow::OpenWindow(){
+void MultiPlatformWindow::OpenWindow(WindowData data){
     glfwInit();
 
-    _window = glfwCreateWindow(800, 600, "My awesome engine window", nullptr, nullptr);
+    _window = glfwCreateWindow(static_cast<int>(data.width), static_cast<int>(data.height), data.title.c_str(), nullptr, nullptr);
 }
 
 bool MultiPlatformWindow::Update(){

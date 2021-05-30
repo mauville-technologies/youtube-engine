@@ -4,3 +4,21 @@
 //
 
 #pragma once
+
+#include <iostream>
+#include <glm/glm.hpp>
+#include <youtube_engine/service_locator.h>
+
+// Keep headers
+#include <youtube_engine/platform/game.h>
+
+int main(int argc, char **argv) {
+    // Create the game
+    auto* theGame = CreateGame();
+
+    // Run the game
+    theGame->Run();
+
+    // once it's done, delete the game
+    delete theGame;
+}
