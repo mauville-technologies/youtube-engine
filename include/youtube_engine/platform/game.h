@@ -5,30 +5,35 @@
 
 #pragma once
 #include <string>
+namespace OZZ {
+    class Game {
+    public:
+        Game();
 
-class Game {
-public:
-    Game();
-    explicit Game(std::string windowTitle);
+        explicit Game(std::string windowTitle);
 
-    ~Game();
+        ~Game();
 
-    // Will run the main game
-    void Run();
-protected:
-    virtual void PhysicsUpdate(float deltaTime) {};
-    virtual void Update(float deltaTime) {};
+        // Will run the main game
+        void Run();
 
-private:
-    void initializeServices();
-    void shutdownServices();
+    protected:
+        virtual void PhysicsUpdate(float deltaTime) {};
 
-public:
+        virtual void Update(float deltaTime) {};
+
+    private:
+        void initializeServices();
+
+        void shutdownServices();
+
+    public:
 
 
-private:
-    std::string _title;
-    bool _running;
-};
+    private:
+        std::string _title;
+        bool _running;
+    };
 
-extern Game* CreateGame();
+    extern Game *CreateGame();
+}

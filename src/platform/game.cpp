@@ -6,52 +6,62 @@
 #include "youtube_engine/platform/game.h"
 #include <youtube_engine/service_locator.h>
 #include "multiplatform_window.h"
-Game::Game() : Game("New Youtube Engine Game") {}
+#include "rendering/vulkan/vulkan_renderer.h"
 
-Game::Game(std::string windowTitle) : _title(std::move(windowTitle)), _running(true) {
-    initializeServices();
-}
+namespace OZZ {
+    Game::Game() : Game("New Youtube Engine Game") {}
 
-Game::~Game() {
-    shutdownServices();
-}
-
-void Game::Run() {
-    // Open the window
-    ServiceLocator::GetWindow()->OpenWindow({
-        .title = _title,
-        .width = 800,
-        .height = 600
-    });
-
-    // run the application
-    while(_running) {
-        // Update the window
-        if (ServiceLocator::GetWindow()->Update()) {
-            _running = false;
-            continue;
-        }
-
-        // calculate deltaTime
-
-        // Update game state
-        Update(0.0f);
-
-        // Update physics
-
-        // Draw
+    Game::Game(std::string windowTitle) : _title(std::move(windowTitle)), _running(true) {
+        initializeServices();
     }
-}
 
-void Game::initializeServices() {
-    // Provide a window
-    ServiceLocator::Provide(new MultiPlatformWindow());
+    Game::~Game() {
+        shutdownServices();
+    }
 
-    // Initialize input system
+    void Game::Run() {
 
-    // initialize the renderer
-}
 
-void Game::shutdownServices() {
-    ServiceLocator::ShutdownServices();
+        // run the application
+        while (_running) {
+            // Update the window
+            if (ServiceLocator::GetWindow()->Update()) {
+                _running = false;
+                continue;
+            }
+
+            // calculate deltaTime
+
+            // Update game state
+            Update(0.0f);
+
+            // Update physics
+
+            // Draw
+            ServiceLocator::GetRenderer()->RenderFrame();
+        }
+    }
+
+    void Game::initializeServices() {
+        // Provide a window
+        ServiceLocator::Provide(new MultiPlatformWindow());
+        // Open the window
+        ServiceLocator::GetWindow()->OpenWindow({
+                                                        .title = _title,
+                                                        .width = 800,
+                                                        .height = 600
+                                                });
+        // Initialize input system
+
+        // initialize the renderer
+        RendererSettings settings {
+            .ApplicationName = _title
+        };
+
+        ServiceLocator::Provide(new VulkanRenderer(), settings);
+    }
+
+    void Game::shutdownServices() {
+        ServiceLocator::ShutdownServices();
+    }
 }
