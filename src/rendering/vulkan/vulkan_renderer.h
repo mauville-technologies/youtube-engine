@@ -26,6 +26,7 @@ namespace OZZ {
         void createDefaultRenderPass();
         void createFramebuffers();
         void createSyncStructures();
+        void createPipelines();
 
         /*
          * MEMBERS
@@ -74,6 +75,12 @@ namespace OZZ {
          */
         VkSemaphore _presentSemaphore, _renderSemaphore;
         VkFence _renderFence;
+
+        /*
+         * PIPELINES
+         */
+        VkPipelineLayout _trianglePipelineLayout;
+        VkPipeline _trianglePipeline;
     };
 }
 

@@ -14,7 +14,7 @@ find_package(Vulkan REQUIRED)
 
 file(GLOB SOURCES "src/*.cpp", "src/*/*.cpp", "src/*/*/*.cpp", "src/*/*/*/*.cpp")
 
-add_library(${PROJECT_NAME} ${SOURCES} )
+add_library(${PROJECT_NAME} ${SOURCES} src/rendering/vulkan/vulkan_pipeline_builder.cpp src/rendering/vulkan/vulkan_pipeline_builder.h)
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
@@ -36,3 +36,16 @@ target_link_libraries(${PROJECT_NAME}
         glfw
         vk-bootstrap
 )
+
+# SHADER COMPILATION
+file (GLOB SHADERS shaders/*.frag shaders/*.vert)
+
+add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+        COMMAND mkdir -p ${CMAKE_BINARY_DIR}/shaders)
+
+foreach(shader ${SHADERS})
+    get_filename_component(SHADER_NAME ${shader} NAME)
+
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND glslc -c ${shader} -o ${CMAKE_BINARY_DIR}/shaders/${SHADER_NAME}.spv)
+endforeach()
