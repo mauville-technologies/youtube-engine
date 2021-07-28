@@ -6,6 +6,7 @@
 #include "vulkan_renderer.h"
 
 #include <VkBootstrap.h>
+#include <cmath>
 #include <youtube_engine/service_locator.h>
 #include "vulkan_initializers.h"
 #include "vulkan_types.h"
