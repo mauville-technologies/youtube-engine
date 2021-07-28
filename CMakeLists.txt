@@ -12,7 +12,7 @@ add_subdirectory(external/vk-bootstrap)
 # library find functions
 find_package(Vulkan REQUIRED)
 
-file(GLOB SOURCES "src/*.cpp", "src/*/*.cpp", "src/*/*/*.cpp", "src/*/*/*/*.cpp")
+file(GLOB SOURCES "src/*.cpp" "src/*/*.cpp" "src/*/*/*.cpp" "src/*/*/*/*.cpp")
 
 add_library(${PROJECT_NAME} ${SOURCES} src/rendering/vulkan/vulkan_pipeline_builder.cpp src/rendering/vulkan/vulkan_pipeline_builder.h)
 
