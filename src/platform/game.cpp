@@ -20,14 +20,16 @@ namespace OZZ {
     }
 
     void Game::Run() {
-
-
         // run the application
         while (_running) {
             // Update the window
             if (ServiceLocator::GetWindow()->Update()) {
                 _running = false;
                 continue;
+            }
+
+            if (ServiceLocator::GetInputManager()) {
+                ServiceLocator::GetInputManager()->processInput();
             }
 
             // calculate deltaTime
@@ -43,6 +45,9 @@ namespace OZZ {
     }
 
     void Game::initializeServices() {
+        // provide input manager
+        ServiceLocator::Provide(new InputManager());
+
         // Provide a window
         ServiceLocator::Provide(new MultiPlatformWindow());
         // Open the window

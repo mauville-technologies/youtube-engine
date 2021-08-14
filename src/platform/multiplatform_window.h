@@ -3,6 +3,7 @@
 
 #include <youtube_engine/platform/window.h>
 #include <GLFW/glfw3.h>
+#include <input/multiplatform_input.h>
 
 namespace OZZ {
     class MultiPlatformWindow : public Window {
@@ -16,6 +17,8 @@ namespace OZZ {
         void RequestDrawSurface(std::unordered_map<SurfaceArgs, std::any> args) override;
 
     private:
+        std::unordered_map<InputKey, InputDeviceState> getGamepadState(int joystickId);
+        MultiplatformInput _input {};
         GLFWwindow *_window;
     };
 }

@@ -14,7 +14,7 @@ find_package(Vulkan REQUIRED)
 
 file(GLOB SOURCES "src/*.cpp" "src/*/*.cpp" "src/*/*/*.cpp" "src/*/*/*/*.cpp")
 
-add_library(${PROJECT_NAME} ${SOURCES} src/rendering/vulkan/vulkan_pipeline_builder.cpp src/rendering/vulkan/vulkan_pipeline_builder.h)
+add_library(${PROJECT_NAME} ${SOURCES})
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
