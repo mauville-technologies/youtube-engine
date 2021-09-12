@@ -7,6 +7,7 @@
 #include <youtube_engine/service_locator.h>
 #include "multiplatform_window.h"
 #include "rendering/vulkan/vulkan_renderer.h"
+#include "sdl_window.h"
 
 namespace OZZ {
     Game::Game() : Game("New Youtube Engine Game") {}
@@ -49,7 +50,8 @@ namespace OZZ {
         ServiceLocator::Provide(new InputManager());
 
         // Provide a window
-        ServiceLocator::Provide(new MultiPlatformWindow());
+//        ServiceLocator::Provide(new MultiPlatformWindow());
+        ServiceLocator::Provide(new SDLWindow());
         // Open the window
         ServiceLocator::GetWindow()->OpenWindow({
                                                         .title = _title,

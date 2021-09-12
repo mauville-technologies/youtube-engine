@@ -8,7 +8,7 @@
 namespace OZZ {
     class MultiPlatformWindow : public Window {
     public:
-        MultiPlatformWindow();
+        MultiPlatformWindow() = default;
 
         void OpenWindow(WindowData data) override;
         bool Update() override;
@@ -19,6 +19,6 @@ namespace OZZ {
     private:
         std::unordered_map<InputKey, InputDeviceState> getGamepadState(int joystickId);
         MultiplatformInput _input {};
-        GLFWwindow *_window;
+        GLFWwindow *_window = nullptr;
     };
 }

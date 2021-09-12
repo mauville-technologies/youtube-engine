@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 # add external libraries
 add_subdirectory(external/glm)
 add_subdirectory(external/glfw)
+add_subdirectory(external/SDL)
 add_subdirectory(external/vk-bootstrap)
 
 
@@ -14,7 +15,7 @@ find_package(Vulkan REQUIRED)
 
 file(GLOB SOURCES "src/*.cpp" "src/*/*.cpp" "src/*/*/*.cpp" "src/*/*/*/*.cpp")
 
-add_library(${PROJECT_NAME} ${SOURCES})
+add_library(${PROJECT_NAME} ${SOURCES} src/platform/sdl_window.cpp src/platform/sdl_window.h)
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
@@ -24,6 +25,8 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${Vulkan_INCLUDE_DIRS}
+        SDL2main
+        SDL2-static
         glfw
         vk-bootstrap
 )
@@ -33,6 +36,8 @@ target_link_libraries(${PROJECT_NAME}
         glm
     PRIVATE
         ${Vulkan_LIBRARIES}
+        SDL2main
+        SDL2-static
         glfw
         vk-bootstrap
 )

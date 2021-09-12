@@ -4,10 +4,6 @@
 #include <youtube_engine/service_locator.h>
 
 namespace OZZ {
-    MultiPlatformWindow::MultiPlatformWindow() {
-        _window = nullptr;
-    }
-
     void MultiPlatformWindow::OpenWindow(WindowData data) {
         glfwInit();
 
