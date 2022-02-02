@@ -5,6 +5,8 @@
 
 #pragma once
 #include <string>
+#include <memory>
+#include <youtube_engine/rendering/shader.h>
 
 namespace OZZ {
     struct RendererSettings {
@@ -16,5 +18,7 @@ namespace OZZ {
         virtual void Init(RendererSettings) = 0;
         virtual void Shutdown() = 0;
         virtual void RenderFrame() = 0;
+
+        virtual std::shared_ptr<Shader> CreateShader() = 0;
     };
 }

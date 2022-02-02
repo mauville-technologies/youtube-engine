@@ -8,10 +8,12 @@
 #include <VkBootstrap.h>
 #include <cmath>
 #include <youtube_engine/service_locator.h>
+
 #include "vulkan_initializers.h"
 #include "vulkan_types.h"
 #include "vulkan_utilities.h"
 #include "vulkan_pipeline_builder.h"
+#include "vulkan_shader.h"
 
 namespace OZZ {
     void VulkanRenderer::Init(RendererSettings settings) {
@@ -30,8 +32,12 @@ namespace OZZ {
     void VulkanRenderer::Shutdown() {
         vkDeviceWaitIdle(_device);
 
-        vkDestroyPipeline(_device, _trianglePipeline, nullptr);
-        vkDestroyPipelineLayout(_device, _trianglePipelineLayout, nullptr);
+        if (_triangleShader) {
+            _triangleShader.reset();
+            _triangleShader = nullptr;
+        }
+        std::cout << "Shader should have been destroyed" << std::endl;
+
         vkDestroyFence(_device, _renderFence, nullptr);
         vkDestroySemaphore(_device, _presentSemaphore, nullptr);
         vkDestroySemaphore(_device, _renderSemaphore, nullptr);
@@ -95,7 +101,8 @@ namespace OZZ {
         vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // DRAW CALLS
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _trianglePipeline);
+        unsigned long long abstractCmd = *(unsigned long long *)&cmd;
+        _triangleShader->Bind(abstractCmd);
         vkCmdDraw(cmd, 3, 1, 0, 0);
 
         vkCmdEndRenderPass(cmd);
@@ -128,6 +135,10 @@ namespace OZZ {
 
         VK_CHECK(vkQueuePresentKHR(_graphicsQueue, &presentInfoKhr));
         _frameNumber++;
+    }
+
+    std::shared_ptr<Shader> VulkanRenderer::CreateShader() {
+        return std::make_shared<VulkanShader>(&_renderPass, &_device, &_windowExtent);
     }
 
     /*
@@ -269,59 +280,9 @@ namespace OZZ {
     }
 
     void VulkanRenderer::createPipelines() {
-        VkShaderModule triangleFragShader;
-        if (!VulkanUtilities::LoadShaderModule("shaders/triangle.frag.spv", _device, triangleFragShader)) {
-            std::cout << "Failed to load triangle fragment shader module\n";
-        } else {
-            std::cout << "Successfully loaded triangle fragment shader module\n";
-        }
-
-        VkShaderModule triangleVertShader;
-        if (!VulkanUtilities::LoadShaderModule("shaders/triangle.vert.spv", _device, triangleVertShader)) {
-            std::cout << "Failed to load triangle vertex shader module\n";
-        } else {
-            std::cout << "Successfully loaded triangle vertex shader module\n";
-        }
-
-        auto pipelineLayoutInfo = VulkanInitializers::PipelineLayoutCreateInfo();
-        VK_CHECK(vkCreatePipelineLayout(_device, &pipelineLayoutInfo, nullptr, &_trianglePipelineLayout));
-
-        /*
-         * TEMPORARY PIPELINE BUILDING
-         */
-
-        VulkanPipelineBuilder pipelineBuilder;
-        pipelineBuilder._shaderStages.push_back(
-                VulkanInitializers::PipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, triangleVertShader));
-        pipelineBuilder._shaderStages.push_back(
-                VulkanInitializers::PipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, triangleFragShader));
-
-        pipelineBuilder._vertexInputInfo = VulkanInitializers::PipelineVertexInputStateCreateInfo();
-        pipelineBuilder._inputAssembly = VulkanInitializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-
-        // build the viewport
-        pipelineBuilder._viewport = {
-                .x = 0.f,
-                .y = 0.f,
-                .width = static_cast<float>(_windowExtent.width),
-                .height = static_cast<float>(_windowExtent.height),
-                .minDepth = 0.f,
-                .maxDepth = 1.f
-        };
-
-        pipelineBuilder._scissor = {
-                .offset = {0 , 0},
-                .extent = _windowExtent
-        };
-
-        pipelineBuilder._rasterizer = VulkanInitializers::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL);
-        pipelineBuilder._multisampling = VulkanInitializers::PipelineMultisampleStateCreateInfo();
-        pipelineBuilder._colorBlendAttachment = VulkanInitializers::PipelineColorBlendAttachmentState();
-        pipelineBuilder._pipelineLayout = _trianglePipelineLayout;
-
-        _trianglePipeline = pipelineBuilder.BuildPipeline(_device, _renderPass);
-
-        vkDestroyShaderModule(_device, triangleFragShader, nullptr);
-        vkDestroyShaderModule(_device, triangleVertShader, nullptr);
+        _triangleShader = CreateShader();
+        _triangleShader->Load("triangle.vert.spv", "triangle.frag.spv");
     }
+
+
 }

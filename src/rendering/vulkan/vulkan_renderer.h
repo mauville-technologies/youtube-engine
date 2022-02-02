@@ -19,6 +19,8 @@ namespace OZZ {
         void Shutdown() override;
         void RenderFrame() override;
 
+        std::shared_ptr<Shader> CreateShader() override;
+
     private:
         void initCore();
         void createSwapchain();
@@ -77,10 +79,9 @@ namespace OZZ {
         VkFence _renderFence;
 
         /*
-         * PIPELINES
+         * SHADERS
          */
-        VkPipelineLayout _trianglePipelineLayout;
-        VkPipeline _trianglePipeline;
+        std::shared_ptr<Shader> _triangleShader { nullptr };
     };
 }
 
