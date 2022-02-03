@@ -20,7 +20,7 @@ namespace OZZ {
         colorBlendStateCreateInfo.pAttachments = &_colorBlendAttachment;
 
         VkGraphicsPipelineCreateInfo pipelineCreateInfo { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-        pipelineCreateInfo.stageCount = _shaderStages.size();
+        pipelineCreateInfo.stageCount = static_cast<uint32_t>(_shaderStages.size());
         pipelineCreateInfo.pStages = _shaderStages.data();
         pipelineCreateInfo.pVertexInputState = &_vertexInputInfo;
         pipelineCreateInfo.pInputAssemblyState = &_inputAssembly;

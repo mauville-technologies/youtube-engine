@@ -5,15 +5,19 @@
 
 #include "vulkan_renderer.h"
 
-#include <VkBootstrap.h>
 #include <cmath>
+
 #include <youtube_engine/service_locator.h>
 
+#include <VkBootstrap.h>
+
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
+
 #include "vulkan_initializers.h"
-#include "vulkan_types.h"
 #include "vulkan_utilities.h"
-#include "vulkan_pipeline_builder.h"
 #include "vulkan_shader.h"
+#include "vulkan_buffer.h"
 
 namespace OZZ {
     void VulkanRenderer::Init(RendererSettings settings) {
@@ -32,12 +36,35 @@ namespace OZZ {
     void VulkanRenderer::Shutdown() {
         vkDeviceWaitIdle(_device);
 
+
         if (_triangleShader) {
             _triangleShader.reset();
             _triangleShader = nullptr;
         }
+
+        if (_triangleBuffer) {
+            _triangleBuffer.reset();
+            _triangleBuffer = nullptr;
+        }
+
+        if (_triangleIndexBuffer) {
+            _triangleIndexBuffer.reset();
+            _triangleIndexBuffer = nullptr;
+        }
+
+        if (_triangle2Buffer) {
+            _triangle2Buffer.reset();
+            _triangle2Buffer = nullptr;
+        }
+
+        if (_triangle2IndexBuffer) {
+            _triangle2IndexBuffer.reset();
+            _triangle2IndexBuffer = nullptr;
+        }
+
         std::cout << "Shader should have been destroyed" << std::endl;
 
+        vmaDestroyAllocator(_allocator);
         vkDestroyFence(_device, _renderFence, nullptr);
         vkDestroySemaphore(_device, _presentSemaphore, nullptr);
         vkDestroySemaphore(_device, _renderSemaphore, nullptr);
@@ -101,9 +128,15 @@ namespace OZZ {
         vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // DRAW CALLS
-        unsigned long long abstractCmd = *(unsigned long long *)&cmd;
-        _triangleShader->Bind(abstractCmd);
-        vkCmdDraw(cmd, 3, 1, 0, 0);
+        _triangleShader->Bind(reinterpret_cast<uint64_t>(cmd));
+
+        _triangle2Buffer->Bind(reinterpret_cast<uint64_t>(cmd));
+        _triangle2IndexBuffer->Bind(reinterpret_cast<uint64_t>(cmd));
+        vkCmdDrawIndexed(cmd, _triangle2IndexBuffer->GetCount(), 1, 0, 0, 0);
+
+        _triangleBuffer->Bind(reinterpret_cast<uint64_t>(cmd));
+        _triangleIndexBuffer->Bind(reinterpret_cast<uint64_t>(cmd));
+        vkCmdDrawIndexed(cmd, _triangleIndexBuffer->GetCount(), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(cmd);
         VK_CHECK(vkEndCommandBuffer(cmd));
@@ -139,6 +172,15 @@ namespace OZZ {
 
     std::shared_ptr<Shader> VulkanRenderer::CreateShader() {
         return std::make_shared<VulkanShader>(&_renderPass, &_device, &_windowExtent);
+    }
+
+
+    std::shared_ptr<VertexBuffer> VulkanRenderer::CreateVertexBuffer() {
+        return std::make_shared<VulkanVertexBuffer>(&_allocator);
+    }
+
+    std::shared_ptr<IndexBuffer> VulkanRenderer::CreateIndexBuffer() {
+        return std::make_shared<VulkanIndexBuffer>(&_allocator);
     }
 
     /*
@@ -187,6 +229,12 @@ namespace OZZ {
 
         _graphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
         _graphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
+
+        VmaAllocatorCreateInfo allocatorCreateInfo {};
+        allocatorCreateInfo.physicalDevice = _physicalDevice;
+        allocatorCreateInfo.device = _device;
+        allocatorCreateInfo.instance = _instance;
+        vmaCreateAllocator(&allocatorCreateInfo, &_allocator);
     }
 
     void VulkanRenderer::createSwapchain() {
@@ -260,10 +308,10 @@ namespace OZZ {
         framebufferCreateInfo.height = _windowExtent.height;
         framebufferCreateInfo.layers = 1;
 
-        const uint32_t swapchainImageCount = _swapchainImages.size();
+        const auto swapchainImageCount = static_cast<uint32_t>(_swapchainImages.size());
         _framebuffers.resize(swapchainImageCount);
 
-        for (int i = 0; i < swapchainImageCount; i++) {
+        for (uint32_t i = 0; i < swapchainImageCount; i++) {
             framebufferCreateInfo.pAttachments = &_swapchainImageViews[i];
             VK_CHECK(vkCreateFramebuffer(_device, &framebufferCreateInfo, nullptr, &_framebuffers[i]));
         }
@@ -281,8 +329,49 @@ namespace OZZ {
 
     void VulkanRenderer::createPipelines() {
         _triangleShader = CreateShader();
-        _triangleShader->Load("triangle.vert.spv", "triangle.frag.spv");
-    }
+        _triangleShader->Load("basic.vert.spv", "basic.frag.spv");
 
+        _triangleBuffer = CreateVertexBuffer();
+        _triangleBuffer->UploadData({
+                Vertex {
+                    .position = {0.75f, 0.75f, 0.f},
+                    .color = {1.f, 0.f, 0.f, 1.f},
+                },
+                Vertex {
+                    .position = {-0.75f, 0.75f, 0.f},
+                    .color = {0.f, 1.f, 0.f, 1.f},
+                },
+                Vertex {
+                    .position = {-0.75f, -0.75f, 0.f},
+                    .color = {0.f, 0.f, 1.f, 1.f},
+                },
+                Vertex {
+                    .position = {0.75f, -0.75f, 0.f},
+                    .color = {0.f, 0.f, 1.f, 1.f},
+                },
+        });
+
+        _triangleIndexBuffer = CreateIndexBuffer();
+        _triangleIndexBuffer->UploadData({0, 1, 2, 2, 3, 0});
+
+        _triangle2Buffer = CreateVertexBuffer();
+        _triangle2Buffer->UploadData({
+                Vertex {
+                        .position = {1.f, 1.f, 0.f},
+                        .color = {1.f, 1.f, 1.f, 1.f},
+                },
+                Vertex {
+                        .position = {-1.f, 1.f, 0.f},
+                        .color = {1.f, 1.f, 1.f, 1.f},
+                },
+                Vertex {
+                        .position = {0.f, -1.f, 0.f},
+                        .color = {1.f, 1.f, 1.f, 1.f},
+                }
+        });
+
+        _triangle2IndexBuffer = CreateIndexBuffer();
+        _triangle2IndexBuffer->UploadData({0, 1, 2});
+    }
 
 }

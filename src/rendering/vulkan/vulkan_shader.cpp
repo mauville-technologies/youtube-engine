@@ -6,6 +6,7 @@
 #include "vulkan_utilities.h"
 #include "vulkan_initializers.h"
 #include "vulkan_pipeline_builder.h"
+#include "vulkan_types.h"
 
 namespace OZZ {
     VulkanShader::VulkanShader(VkRenderPass* renderPass, VkDevice* device, VkExtent2D* windowExtent) :
@@ -48,13 +49,24 @@ namespace OZZ {
          * TEMPORARY PIPELINE BUILDING
          */
 
+        VertexInputDescription vertexInputDescription = GetVertexDescription();
+
         VulkanPipelineBuilder pipelineBuilder;
+
         pipelineBuilder._shaderStages.push_back(
                 VulkanInitializers::PipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShaderModule));
         pipelineBuilder._shaderStages.push_back(
                 VulkanInitializers::PipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderModule));
 
+
+        // Specify vertex attributes
         pipelineBuilder._vertexInputInfo = VulkanInitializers::PipelineVertexInputStateCreateInfo();
+        pipelineBuilder._vertexInputInfo.pVertexAttributeDescriptions = vertexInputDescription.attributes.data();
+        pipelineBuilder._vertexInputInfo.vertexAttributeDescriptionCount = vertexInputDescription.attributes.size();
+
+        pipelineBuilder._vertexInputInfo.pVertexBindingDescriptions = vertexInputDescription.bindings.data();
+        pipelineBuilder._vertexInputInfo.vertexBindingDescriptionCount = vertexInputDescription.bindings.size();
+
         pipelineBuilder._inputAssembly = VulkanInitializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
         // build the viewport

@@ -8,6 +8,7 @@ add_subdirectory(external/glm)
 add_subdirectory(external/glfw)
 add_subdirectory(external/SDL)
 add_subdirectory(external/vk-bootstrap)
+add_subdirectory(external/VulkanMemoryAllocator)
 
 
 # library find functions
@@ -29,6 +30,7 @@ target_include_directories(${PROJECT_NAME}
         SDL2-static
         glfw
         vk-bootstrap
+        VulkanMemoryAllocator
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -40,6 +42,7 @@ target_link_libraries(${PROJECT_NAME}
         SDL2-static
         glfw
         vk-bootstrap
+        VulkanMemoryAllocator
 )
 
 # SHADER COMPILATION

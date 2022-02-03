@@ -8,6 +8,7 @@
 #include <youtube_engine/rendering/renderer.h>
 #include <vulkan/vulkan.h>
 #include <vector>
+#include <vk_mem_alloc.h>
 
 namespace OZZ {
     class VulkanRenderer : public Renderer {
@@ -20,6 +21,8 @@ namespace OZZ {
         void RenderFrame() override;
 
         std::shared_ptr<Shader> CreateShader() override;
+        std::shared_ptr<VertexBuffer> CreateVertexBuffer() override;
+        std::shared_ptr<IndexBuffer> CreateIndexBuffer() override;
 
     private:
         void initCore();
@@ -47,6 +50,7 @@ namespace OZZ {
         VkPhysicalDevice _physicalDevice;   // physical device
         VkDevice _device;                   // logical device
         VkSurfaceKHR _surface;
+        VmaAllocator _allocator;
 
         /*
          * SWAPCHAIN
@@ -82,6 +86,16 @@ namespace OZZ {
          * SHADERS
          */
         std::shared_ptr<Shader> _triangleShader { nullptr };
+
+        /*
+         * BUFFERS
+         */
+        std::shared_ptr<VertexBuffer> _triangleBuffer { nullptr };
+        std::shared_ptr<IndexBuffer> _triangleIndexBuffer { nullptr };
+
+        std::shared_ptr<VertexBuffer> _triangle2Buffer { nullptr };
+        std::shared_ptr<IndexBuffer> _triangle2IndexBuffer { nullptr };
+
     };
 }
 
