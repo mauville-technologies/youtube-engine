@@ -4,6 +4,7 @@
 
 #include "vulkan_buffer.h"
 #include "vulkan_utilities.h"
+#include "vulkan_renderer.h"
 
 namespace OZZ {
     VulkanBuffer::VulkanBuffer(VmaAllocator* allocator, uint64_t bufferSize, VkBufferUsageFlags bufferUsage, VmaMemoryUsage vmaUsage) : _allocator(allocator){
@@ -127,7 +128,7 @@ namespace OZZ {
      *
      */
 
-    VulkanIndexBuffer::VulkanIndexBuffer(VmaAllocator* allocator) : _allocator { allocator }, _bufferSize { 0 } {}
+    VulkanIndexBuffer::VulkanIndexBuffer(VulkanRenderer* renderer) : _renderer { renderer }, _bufferSize { 0 } {}
 
     VulkanIndexBuffer::~VulkanIndexBuffer() {
         _buffer.reset();
@@ -151,9 +152,19 @@ namespace OZZ {
 
             _bufferSize = newBufferSize;
             _count = static_cast<uint64_t>(indices.size());
-            _buffer = std::make_shared<VulkanBuffer>(_allocator, _bufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            _buffer = std::make_shared<VulkanBuffer>(
+                    &_renderer->_allocator, _bufferSize,
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                    VMA_MEMORY_USAGE_GPU_ONLY);
         }
 
-        _buffer->UploadData((int*)indices.data(), _bufferSize);
+        auto stagingBuffer = std::make_shared<VulkanBuffer>(
+                &_renderer->_allocator, _bufferSize,
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VMA_MEMORY_USAGE_CPU_ONLY);
+        stagingBuffer->UploadData((int*)indices.data(), _bufferSize);
+
+        VulkanBuffer::CopyBuffer(&_renderer->_device, &_renderer->_commandPool, &_renderer->_graphicsQueue,
+                                 stagingBuffer.get(), _buffer.get(), _bufferSize);
     }
 }

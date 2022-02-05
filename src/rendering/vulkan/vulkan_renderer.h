@@ -16,6 +16,7 @@ namespace OZZ {
     friend struct VulkanBuffer;
     friend class VulkanVertexBuffer;
     friend class VulkanIndexBuffer;
+    friend class VulkanShader;
 
         /*
          * FUNCTIONS

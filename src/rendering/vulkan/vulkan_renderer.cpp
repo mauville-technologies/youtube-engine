@@ -179,7 +179,7 @@ namespace OZZ {
     }
 
     std::shared_ptr<Shader> VulkanRenderer::CreateShader() {
-        auto newShader = std::make_shared<VulkanShader>(&_renderPass, &_device, &_windowExtent);
+        auto newShader = std::make_shared<VulkanShader>(this);
         _shaders.push_back(newShader);
         return newShader;
     }
@@ -190,7 +190,7 @@ namespace OZZ {
     }
 
     std::shared_ptr<IndexBuffer> VulkanRenderer::CreateIndexBuffer() {
-        return std::make_shared<VulkanIndexBuffer>(&_allocator);
+        return std::make_shared<VulkanIndexBuffer>(this);
     }
 
     /*

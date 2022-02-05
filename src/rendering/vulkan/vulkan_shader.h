@@ -6,9 +6,11 @@
 #include <youtube_engine/rendering/shader.h>
 #include <vulkan/vulkan.h>
 namespace OZZ {
+    class VulkanRenderer;
+
     class VulkanShader : public Shader {
     public:
-        VulkanShader(VkRenderPass* renderPass, VkDevice* device, VkExtent2D* windowExtent);
+        VulkanShader(VulkanRenderer* renderer);
 
         void Rebuild();
 
@@ -17,13 +19,7 @@ namespace OZZ {
 
         ~VulkanShader() override;
     private:
-        /*
-         *  Handles
-         */
-        VkDevice* _device { nullptr };
-        VkRenderPass* _renderPass { nullptr };
-
-        VkExtent2D* _windowExtent { nullptr };
+        VulkanRenderer* _renderer;
         /*
          * PIPELINES
          */

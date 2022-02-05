@@ -6,9 +6,9 @@
 #include <youtube_engine/rendering/buffer.h>
 #include <vk_mem_alloc.h>
 #include <memory>
-#include "vulkan_renderer.h"
 
 namespace OZZ {
+    class VulkanRenderer;
 
     struct VulkanBuffer {
         VulkanBuffer(VmaAllocator* allocator, uint64_t bufferSize, VkBufferUsageFlags bufferUsage, VmaMemoryUsage vmaUsage);
@@ -46,7 +46,7 @@ namespace OZZ {
 
     class VulkanIndexBuffer : public IndexBuffer {
     public:
-        VulkanIndexBuffer(VmaAllocator* allocator);
+        VulkanIndexBuffer(VulkanRenderer* renderer);
         ~VulkanIndexBuffer();
         void Bind(uint64_t commandHandle) override;
 
@@ -55,7 +55,7 @@ namespace OZZ {
         uint64_t GetCount() override { return _count; };
 
     private:
-        VmaAllocator* _allocator;
+        VulkanRenderer* _renderer;
 
         uint64_t _bufferSize;
         std::shared_ptr<VulkanBuffer> _buffer { nullptr };
