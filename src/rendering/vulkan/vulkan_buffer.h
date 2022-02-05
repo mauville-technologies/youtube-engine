@@ -6,6 +6,7 @@
 #include <youtube_engine/rendering/buffer.h>
 #include <vk_mem_alloc.h>
 #include <memory>
+#include "vulkan_renderer.h"
 
 namespace OZZ {
 
@@ -18,23 +19,24 @@ namespace OZZ {
         VkBuffer Buffer { nullptr };
         VmaAllocation Allocation { nullptr };
 
-
+        static void CopyBuffer(VkDevice* device, VkCommandPool* commandPool, VkQueue* queue,
+                               VulkanBuffer* srcBuffer, VulkanBuffer *dstBuffer, VkDeviceSize size);
     private:
         VmaAllocator* _allocator { nullptr };
     };
 
     class VulkanVertexBuffer : public VertexBuffer {
     public:
-        explicit VulkanVertexBuffer(VmaAllocator* allocator);
+        explicit VulkanVertexBuffer(VulkanRenderer* renderer);
         ~VulkanVertexBuffer();
+
+
         void UploadData(const std::vector<Vertex>& vertices) override;
-
         void Bind(uint64_t commandHandle) override;
-
         uint64_t GetCount() override { return _count; };
 
     private:
-        VmaAllocator* _allocator;
+        VulkanRenderer* _renderer;
 
         uint64_t _bufferSize;
         std::shared_ptr<VulkanBuffer> _buffer { nullptr };

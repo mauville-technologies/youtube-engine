@@ -33,13 +33,51 @@ namespace OZZ {
         vmaUnmapMemory(*_allocator, Allocation);
     }
 
+    void VulkanBuffer::CopyBuffer(VkDevice* device, VkCommandPool* commandPool, VkQueue* queue,
+                                  VulkanBuffer *srcBuffer, VulkanBuffer *dstBuffer, VkDeviceSize size) {
+        // Create the command buffer
+        VkCommandBufferAllocateInfo allocateInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+        allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocateInfo.commandPool = *commandPool;
+
+        allocateInfo.commandBufferCount = 1;
+
+        VkCommandBuffer commandBuffer;
+        vkAllocateCommandBuffers(*device, &allocateInfo, &commandBuffer);
+
+        // Record the command buffer
+        VkCommandBufferBeginInfo commandBufferBeginInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+        commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+        vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
+
+        VkBufferCopy copyRegion {
+            .srcOffset = 0,
+            .dstOffset = 0,
+            .size = size
+        };
+
+        vkCmdCopyBuffer(commandBuffer, srcBuffer->Buffer, dstBuffer->Buffer, 1, &copyRegion);
+        vkEndCommandBuffer(commandBuffer);
+
+        VkSubmitInfo submitInfo { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        vkQueueSubmit(*queue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(*queue);
+
+        vkFreeCommandBuffers(*device, *commandPool, 1, &commandBuffer);
+    }
+
 
     /*
      *
      * VERTEX BUFFER
      *
      */
-    VulkanVertexBuffer::VulkanVertexBuffer(VmaAllocator *allocator) : _allocator{ allocator }, _bufferSize { 0 } {}
+    VulkanVertexBuffer::VulkanVertexBuffer(VulkanRenderer* renderer) :
+        _renderer(renderer), _bufferSize { 0 } {}
 
     VulkanVertexBuffer::~VulkanVertexBuffer() {
         _buffer.reset();
@@ -56,10 +94,23 @@ namespace OZZ {
 
             _bufferSize = newBufferSize;
             _count = static_cast<uint64_t>(vertices.size());
-            _buffer = std::make_shared<VulkanBuffer>(_allocator, _bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+
+            _buffer = std::make_shared<VulkanBuffer>(
+                    &_renderer->_allocator, _bufferSize,
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                    VMA_MEMORY_USAGE_GPU_ONLY);
+
         }
 
-        _buffer->UploadData((int*)vertices.data(), _bufferSize);
+        auto stagingBuffer = std::make_shared<VulkanBuffer>(
+                &_renderer->_allocator, _bufferSize,
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VMA_MEMORY_USAGE_CPU_ONLY);
+        stagingBuffer->UploadData((int*)vertices.data(), _bufferSize);
+
+        VulkanBuffer::CopyBuffer(&_renderer->_device, &_renderer->_commandPool, &_renderer->_graphicsQueue,
+                                 stagingBuffer.get(), _buffer.get(), _bufferSize);
     }
 
     void VulkanVertexBuffer::Bind(uint64_t commandHandle) {

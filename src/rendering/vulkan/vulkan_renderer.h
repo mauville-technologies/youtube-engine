@@ -12,6 +12,11 @@
 
 namespace OZZ {
     class VulkanRenderer : public Renderer {
+    // Vulkan Objects should have access to the renderer -- so let's make friends
+    friend struct VulkanBuffer;
+    friend class VulkanVertexBuffer;
+    friend class VulkanIndexBuffer;
+
         /*
          * FUNCTIONS
          */

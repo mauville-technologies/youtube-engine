@@ -176,7 +176,7 @@ namespace OZZ {
 
 
     std::shared_ptr<VertexBuffer> VulkanRenderer::CreateVertexBuffer() {
-        return std::make_shared<VulkanVertexBuffer>(&_allocator);
+        return std::make_shared<VulkanVertexBuffer>(this);
     }
 
     std::shared_ptr<IndexBuffer> VulkanRenderer::CreateIndexBuffer() {
