@@ -29,13 +29,14 @@ namespace OZZ {
         createDefaultRenderPass();
         createFramebuffers();
         createSyncStructures();
+        _triangleShader = CreateShader();
+        _triangleShader->Load("basic.vert.spv", "basic.frag.spv");
         createPipelines();
 
     }
 
     void VulkanRenderer::Shutdown() {
         vkDeviceWaitIdle(_device);
-
 
         if (_triangleShader) {
             _triangleShader.reset();
@@ -62,25 +63,14 @@ namespace OZZ {
             _triangle2IndexBuffer = nullptr;
         }
 
-        std::cout << "Shader should have been destroyed" << std::endl;
+        cleanupSwapchain();
 
         vmaDestroyAllocator(_allocator);
         vkDestroyFence(_device, _renderFence, nullptr);
         vkDestroySemaphore(_device, _presentSemaphore, nullptr);
         vkDestroySemaphore(_device, _renderSemaphore, nullptr);
 
-        for (auto framebuffer : _framebuffers) {
-            vkDestroyFramebuffer(_device, framebuffer, nullptr);
-        }
-
-        vkDestroyRenderPass(_device, _renderPass, nullptr);
-
         vkDestroyCommandPool(_device, _commandPool, nullptr);
-        vkDestroySwapchainKHR(_device, _swapchain, nullptr);
-
-        for (auto imageView : _swapchainImageViews) {
-            vkDestroyImageView(_device, imageView, nullptr);
-        }
 
         vkDestroyDevice(_device, nullptr);
         vkDestroySurfaceKHR(_instance, _surface, nullptr);
@@ -93,7 +83,15 @@ namespace OZZ {
         VK_CHECK(vkResetFences(_device, 1, &_renderFence));                     // 0
 
         uint32_t swapchainImageIndex;
-        VK_CHECK(vkAcquireNextImageKHR(_device, _swapchain, 1000000000, _presentSemaphore, VK_NULL_HANDLE, &swapchainImageIndex));
+        VkResult result = vkAcquireNextImageKHR(_device, _swapchain, 1000000000, _presentSemaphore,
+                                                VK_NULL_HANDLE, &swapchainImageIndex);
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            recreateSwapchain();
+            return;
+        } else {
+            VK_CHECK(result);
+        }
 
         VK_CHECK(vkResetCommandBuffer(_mainCommandBuffer, 0));
 
@@ -166,12 +164,24 @@ namespace OZZ {
 
         presentInfoKhr.pImageIndices = &swapchainImageIndex;
 
-        VK_CHECK(vkQueuePresentKHR(_graphicsQueue, &presentInfoKhr));
+        result = vkQueuePresentKHR(_graphicsQueue, &presentInfoKhr);
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            recreateSwapchain();
+        } else {
+            VK_CHECK(result);
+        }
+
+        // Remove any expired shaders from the weak references
+        erase_if(_shaders,[](auto shader) { return shader.expired(); });
+
         _frameNumber++;
     }
 
     std::shared_ptr<Shader> VulkanRenderer::CreateShader() {
-        return std::make_shared<VulkanShader>(&_renderPass, &_device, &_windowExtent);
+        auto newShader = std::make_shared<VulkanShader>(&_renderPass, &_device, &_windowExtent);
+        _shaders.push_back(newShader);
+        return newShader;
     }
 
 
@@ -237,6 +247,42 @@ namespace OZZ {
         vmaCreateAllocator(&allocatorCreateInfo, &_allocator);
     }
 
+    void VulkanRenderer::cleanupSwapchain() {
+        for (auto framebuffer : _framebuffers) {
+            vkDestroyFramebuffer(_device, framebuffer, nullptr);
+        }
+
+        vkDestroyRenderPass(_device, _renderPass, nullptr);
+        vkFreeCommandBuffers(_device, _commandPool, 1, &_mainCommandBuffer);
+
+        vkDestroySwapchainKHR(_device, _swapchain, nullptr);
+
+        for (auto imageView : _swapchainImageViews) {
+            vkDestroyImageView(_device, imageView, nullptr);
+        }
+    }
+
+    void VulkanRenderer::recreateSwapchain() {
+        vkDeviceWaitIdle(_device);
+
+        cleanupSwapchain();
+
+        createSwapchain();
+        createCommands();
+        createDefaultRenderPass();
+        createFramebuffers();
+        rebuildShaders();
+
+        //TODO: RESET SHADERS!
+    }
+    void VulkanRenderer::rebuildShaders() {
+        for (const auto& shader : _shaders) {
+            if (auto shaderPtr = shader.lock()) {
+                reinterpret_pointer_cast<VulkanShader>(shaderPtr)->Rebuild();
+            }
+        }
+    }
+
     void VulkanRenderer::createSwapchain() {
 
         auto [width, height] = ServiceLocator::GetWindow()->GetWindowExtents();
@@ -248,6 +294,7 @@ namespace OZZ {
                 .use_default_format_selection()
                 .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)     // Hard VSync
                 .set_desired_extent(width, height)
+                .set_old_swapchain(VK_NULL_HANDLE)
                 .build()
                 .value();
 
@@ -259,9 +306,13 @@ namespace OZZ {
     }
 
     void VulkanRenderer::createCommands() {
-        VkCommandPoolCreateInfo commandPoolCreateInfo = VulkanInitializers::CommandPoolCreateInfo(_graphicsQueueFamily,
-                VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-        VK_CHECK(vkCreateCommandPool(_device, &commandPoolCreateInfo, nullptr, &_commandPool));
+
+        if (_commandPool == VK_NULL_HANDLE) {
+            VkCommandPoolCreateInfo commandPoolCreateInfo = VulkanInitializers::CommandPoolCreateInfo(
+                    _graphicsQueueFamily,
+                    VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+            VK_CHECK(vkCreateCommandPool(_device, &commandPoolCreateInfo, nullptr, &_commandPool));
+        }
 
         VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(_commandPool);
         VK_CHECK(vkAllocateCommandBuffers(_device, &commandBufferAllocateInfo, &_mainCommandBuffer));
@@ -328,8 +379,6 @@ namespace OZZ {
     }
 
     void VulkanRenderer::createPipelines() {
-        _triangleShader = CreateShader();
-        _triangleShader->Load("basic.vert.spv", "basic.frag.spv");
 
         _triangleBuffer = CreateVertexBuffer();
         _triangleBuffer->UploadData({
@@ -373,5 +422,6 @@ namespace OZZ {
         _triangle2IndexBuffer = CreateIndexBuffer();
         _triangle2IndexBuffer->UploadData({0, 1, 2});
     }
+
 
 }

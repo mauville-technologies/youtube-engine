@@ -10,6 +10,8 @@ namespace OZZ {
     public:
         VulkanShader(VkRenderPass* renderPass, VkDevice* device, VkExtent2D* windowExtent);
 
+        void Rebuild();
+
         void Bind(uint64_t commandHandle) override;
         void Load(const std::string&& vertexShader, const std::string&& fragmentShader) override;
 
@@ -25,8 +27,14 @@ namespace OZZ {
         /*
          * PIPELINES
          */
-        VkPipelineLayout _pipelineLayout{ nullptr };
-        VkPipeline _pipeline { nullptr };
+        VkPipelineLayout _pipelineLayout{ VK_NULL_HANDLE };
+        VkPipeline _pipeline { VK_NULL_HANDLE };
+
+        /*
+         * FILE LOCATIONS FOR REBUILDING
+         */
+        std::string _vertexShader;
+        std::string _fragmentShader;
     };
 }
 

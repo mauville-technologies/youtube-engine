@@ -17,7 +17,7 @@ namespace OZZ {
         auto height = data.height;
 
         _window = SDL_CreateWindow(data.title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width,
-                                   height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
+                                   height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     }
 
     bool SDLWindow::Update() {

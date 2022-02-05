@@ -14,7 +14,6 @@ namespace OZZ {
 
 
     VulkanShader::~VulkanShader() {
-        std::cout << "Destroying Shader" << std::endl;
         vkDestroyPipeline(*_device, _pipeline, nullptr);
         vkDestroyPipelineLayout(*_device, _pipelineLayout, nullptr);
 
@@ -23,23 +22,34 @@ namespace OZZ {
         _renderPass = nullptr;
     }
 
+    void VulkanShader::Rebuild() {
+        Load(std::move(_vertexShader), std::move(_fragmentShader));
+    }
+
     void VulkanShader::Bind(uint64_t commandHandle) {
         vkCmdBindPipeline(VkCommandBuffer(commandHandle), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
     }
 
     void VulkanShader::Load(const std::string&& vertexShader, const std::string&& fragmentShader) {
+        if (_pipeline) {
+            vkDestroyPipeline(*_device, _pipeline, nullptr);
+        }
+
+        if (_pipelineLayout) {
+            vkDestroyPipelineLayout(*_device, _pipelineLayout, nullptr);
+        }
+
+        _vertexShader = vertexShader;
+        _fragmentShader = fragmentShader;
+
         VkShaderModule fragmentShaderModule;
         if (!VulkanUtilities::LoadShaderModule(fragmentShader, *_device, fragmentShaderModule)) {
-            std::cout << "Failed to load triangle fragment shader module\n";
-        } else {
-            std::cout << "Successfully loaded triangle fragment shader module\n";
+            std::cout << "Failed to load fragment shader module at: " << _fragmentShader << "\n";
         }
 
         VkShaderModule vertexShaderModule;
         if (!VulkanUtilities::LoadShaderModule(vertexShader, *_device, vertexShaderModule)) {
-            std::cout << "Failed to load triangle vertex shader module\n";
-        } else {
-            std::cout << "Successfully loaded triangle vertex shader module\n";
+            std::cout << "Failed to load vertex shader module at: " << _vertexShader << "\n";
         }
 
         auto pipelineLayoutInfo = VulkanInitializers::PipelineLayoutCreateInfo();

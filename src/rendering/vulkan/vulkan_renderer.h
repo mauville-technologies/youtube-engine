@@ -31,6 +31,11 @@ namespace OZZ {
 
     private:
         void initCore();
+        void cleanupSwapchain();
+
+        void recreateSwapchain();
+        void rebuildShaders();
+
         void createSwapchain();
         void createCommands();
         void createDefaultRenderPass();
@@ -72,8 +77,8 @@ namespace OZZ {
         VkQueue _graphicsQueue;
         uint32_t _graphicsQueueFamily;
 
-        VkCommandPool _commandPool;
-        VkCommandBuffer _mainCommandBuffer;
+        VkCommandPool _commandPool { VK_NULL_HANDLE };
+        VkCommandBuffer _mainCommandBuffer { VK_NULL_HANDLE };
 
         /*
          * RENDER PASSES
@@ -90,6 +95,8 @@ namespace OZZ {
         /*
          * SHADERS
          */
+        std::vector<std::weak_ptr<Shader>> _shaders {};
+
         std::shared_ptr<Shader> _triangleShader { nullptr };
 
         /*
