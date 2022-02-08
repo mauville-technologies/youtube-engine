@@ -62,4 +62,28 @@ namespace OZZ {
 
         return description;
     }
+
+
+    /*
+     * UNIFORM BUFFER THINGS
+     * TODO: This needs to be abstracted
+     */
+    inline VkDescriptorSetLayoutBinding GetUniformBufferLayoutBinding() {
+        VkDescriptorSetLayoutBinding uboLayoutBinding {};
+        uboLayoutBinding.binding = 0;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboLayoutBinding.descriptorCount = 1; // could be an array?
+        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        uboLayoutBinding.pImmutableSamplers = nullptr;  // Likely for textures
+
+        return uboLayoutBinding;
+    }
+
+    inline VkDescriptorSetLayoutCreateInfo BuildDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& bindings) {
+        VkDescriptorSetLayoutCreateInfo vkDescriptorSetLayoutCreateInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+        vkDescriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        vkDescriptorSetLayoutCreateInfo.pBindings = bindings.data();
+
+        return vkDescriptorSetLayoutCreateInfo;
+    };
 }

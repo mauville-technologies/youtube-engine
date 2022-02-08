@@ -28,4 +28,11 @@ namespace OZZ {
         virtual void UploadData(const std::vector<uint32_t>&) = 0;
         virtual uint64_t GetCount() = 0;
     };
+
+    class UniformBuffer {
+    public:
+        ~UniformBuffer() = default;
+        virtual void Bind(uint64_t commandHandle) = 0;
+        virtual void UploadData(const UniformBufferObject&) = 0;
+    };
 }

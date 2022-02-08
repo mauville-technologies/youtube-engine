@@ -16,6 +16,7 @@ namespace OZZ {
     friend struct VulkanBuffer;
     friend class VulkanVertexBuffer;
     friend class VulkanIndexBuffer;
+    friend class VulkanUniformBuffer;
     friend class VulkanShader;
 
         /*
@@ -29,6 +30,8 @@ namespace OZZ {
         std::shared_ptr<Shader> CreateShader() override;
         std::shared_ptr<VertexBuffer> CreateVertexBuffer() override;
         std::shared_ptr<IndexBuffer> CreateIndexBuffer() override;
+        std::shared_ptr<UniformBuffer> CreateUniformBuffer() override;
+
 
     private:
         void initCore();
@@ -39,6 +42,7 @@ namespace OZZ {
 
         void createSwapchain();
         void createCommands();
+        void createDescriptorPools();
         void createDefaultRenderPass();
         void createFramebuffers();
         void createSyncStructures();
@@ -48,6 +52,7 @@ namespace OZZ {
          * MEMBERS
          */
     private:
+
         //TODO: TEMPORARY FRAME NUMBER
         uint64_t _frameNumber {0};
 
@@ -73,13 +78,20 @@ namespace OZZ {
         VkExtent2D _windowExtent;
 
         /*
-         * COMMAND POOLS AND QUEUES
+         * POOLS AND QUEUES
          */
         VkQueue _graphicsQueue;
         uint32_t _graphicsQueueFamily;
 
         VkCommandPool _commandPool { VK_NULL_HANDLE };
         VkCommandBuffer _mainCommandBuffer { VK_NULL_HANDLE };
+
+        static constexpr uint32_t POOL_SIZE_COUNT { 1 };
+        static constexpr VkDescriptorPoolSize POOL_SIZES[] {
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10}
+        };
+
+        VkDescriptorPool _descriptorPool { VK_NULL_HANDLE };
 
         /*
          * RENDER PASSES
@@ -94,17 +106,19 @@ namespace OZZ {
         VkFence _renderFence;
 
         /*
-         * SHADERS
+         * References to the shaders created in the system to be rebuilt when swapchain is recreated
          */
         std::vector<std::weak_ptr<Shader>> _shaders {};
 
-        std::shared_ptr<Shader> _triangleShader { nullptr };
-
         /*
-         * BUFFERS
+         * NON-RENDERING Objects
          */
+        std::shared_ptr<Shader> _triangleShader { nullptr };
+        std::shared_ptr<Shader> _triangleShader2 { nullptr };
+
         std::shared_ptr<VertexBuffer> _triangleBuffer { nullptr };
         std::shared_ptr<IndexBuffer> _triangleIndexBuffer { nullptr };
+        std::shared_ptr<UniformBuffer> _triangleUniformBuffer { nullptr };
 
         std::shared_ptr<VertexBuffer> _triangle2Buffer { nullptr };
         std::shared_ptr<IndexBuffer> _triangle2IndexBuffer { nullptr };

@@ -167,4 +167,78 @@ namespace OZZ {
         VulkanBuffer::CopyBuffer(&_renderer->_device, &_renderer->_commandPool, &_renderer->_graphicsQueue,
                                  stagingBuffer.get(), _buffer.get(), _bufferSize);
     }
+
+    /*
+     *
+     * UNIFORM BUFFER
+     *
+     */
+
+    VulkanUniformBuffer::VulkanUniformBuffer(VulkanRenderer *renderer) : _renderer { renderer }, _bufferSize { 0 } {}
+
+    VulkanUniformBuffer::~VulkanUniformBuffer() {
+        _buffer.reset();
+        _buffer = nullptr;
+    }
+
+    VkDescriptorSet VulkanUniformBuffer::GetDescriptorSet(VkDescriptorSetLayout* descriptorSetLayout) {
+        if (!_descriptorSet) {
+            if (!_buffer) {
+                // Give it default data if no data was explicitely given yet
+                UploadData({});
+            }
+
+            VkDescriptorSetAllocateInfo allocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+            allocateInfo.descriptorPool = _renderer->_descriptorPool;
+            allocateInfo.descriptorSetCount = 1;
+            allocateInfo.pSetLayouts = descriptorSetLayout;
+
+            VK_CHECK(vkAllocateDescriptorSets(_renderer->_device, &allocateInfo, &_descriptorSet));
+
+            if (_buffer) {
+                VkDescriptorBufferInfo descriptorBufferInfo{};
+                descriptorBufferInfo.buffer = _buffer->Buffer;
+                descriptorBufferInfo.offset = 0;
+                descriptorBufferInfo.range = sizeof(UniformBufferObject);
+
+                VkWriteDescriptorSet descriptorSetWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                descriptorSetWrite.dstSet = _descriptorSet;
+                descriptorSetWrite.dstBinding = 0;
+                descriptorSetWrite.dstArrayElement = 0;
+                descriptorSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                descriptorSetWrite.descriptorCount = 1;
+                descriptorSetWrite.pBufferInfo = &descriptorBufferInfo;
+                descriptorSetWrite.pImageInfo = nullptr;
+                descriptorSetWrite.pTexelBufferView = nullptr;
+
+                vkUpdateDescriptorSets(_renderer->_device, 1, &descriptorSetWrite, 0, nullptr);
+            }
+        }
+
+        return _descriptorSet;
+    }
+
+    void VulkanUniformBuffer::Bind(uint64_t commandHandle) {}
+
+    void VulkanUniformBuffer::UploadData(const UniformBufferObject &object) {
+        uint64_t newBufferSize { sizeof(object) };
+
+        // If the buffer size changed, we need to recreate it
+        if (_bufferSize != newBufferSize) {
+            // if the buffer exists, reset it (clear old buffer)
+            if (_buffer) _buffer.reset();
+
+            _bufferSize = newBufferSize;
+            _buffer = std::make_shared<VulkanBuffer>(
+                    &_renderer->_allocator, _bufferSize,
+                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                    VMA_MEMORY_USAGE_CPU_TO_GPU);
+        }
+
+        _buffer->UploadData((int*)&object, _bufferSize);
+    }
+
+
+
+
 }

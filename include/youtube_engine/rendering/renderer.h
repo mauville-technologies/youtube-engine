@@ -23,6 +23,7 @@ namespace OZZ {
         virtual std::shared_ptr<Shader> CreateShader() = 0;
         virtual std::shared_ptr<VertexBuffer> CreateVertexBuffer() = 0;
         virtual std::shared_ptr<IndexBuffer> CreateIndexBuffer() = 0;
+        virtual std::shared_ptr<UniformBuffer> CreateUniformBuffer() = 0;
 
     };
 }

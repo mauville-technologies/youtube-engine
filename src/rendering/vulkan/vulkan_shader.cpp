@@ -8,6 +8,7 @@
 #include "vulkan_pipeline_builder.h"
 #include "vulkan_types.h"
 #include "vulkan_renderer.h"
+#include "vulkan_buffer.h"
 
 namespace OZZ {
     VulkanShader::VulkanShader(VulkanRenderer* renderer) :
@@ -15,27 +16,32 @@ namespace OZZ {
 
 
     VulkanShader::~VulkanShader() {
-        vkDestroyPipeline(_renderer->_device, _pipeline, nullptr);
-        vkDestroyPipelineLayout(_renderer->_device, _pipelineLayout, nullptr);
+        cleanPipeline();
     }
 
     void VulkanShader::Rebuild() {
+        cleanPipeline();
         Load(std::move(_vertexShader), std::move(_fragmentShader));
     }
 
     void VulkanShader::Bind(uint64_t commandHandle) {
+        // Bind Uniforms
+        for (auto& uniform : _uniformBuffers) {
+            auto descriptorSet = dynamic_cast<VulkanUniformBuffer*>(uniform.get())->GetDescriptorSet(&_descriptorSetLayout);
+
+            vkCmdBindDescriptorSets((VkCommandBuffer) commandHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
+                                    0, 1, &descriptorSet, 0, nullptr);
+        }
+
         vkCmdBindPipeline(VkCommandBuffer(commandHandle), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
     }
 
+
+    void VulkanShader::AddUniformBuffer(std::shared_ptr<UniformBuffer> buffer) {
+        _uniformBuffers.push_back(buffer);
+    }
+
     void VulkanShader::Load(const std::string&& vertexShader, const std::string&& fragmentShader) {
-        if (_pipeline) {
-            vkDestroyPipeline(_renderer->_device, _pipeline, nullptr);
-        }
-
-        if (_pipelineLayout) {
-            vkDestroyPipelineLayout(_renderer->_device, _pipelineLayout, nullptr);
-        }
-
         _vertexShader = vertexShader;
         _fragmentShader = fragmentShader;
 
@@ -49,7 +55,16 @@ namespace OZZ {
             std::cout << "Failed to load vertex shader module at: " << _vertexShader << "\n";
         }
 
+        buildDescriptorSets();
+
         auto pipelineLayoutInfo = VulkanInitializers::PipelineLayoutCreateInfo();
+
+        pipelineLayoutInfo.setLayoutCount = 1;
+        pipelineLayoutInfo.pSetLayouts = &_descriptorSetLayout;
+
+        // descriptor set layout goes here
+        // therefore they probably belong to the shader
+
         VK_CHECK(vkCreatePipelineLayout(_renderer->_device, &pipelineLayoutInfo, nullptr, &_pipelineLayout));
 
         /*
@@ -102,5 +117,25 @@ namespace OZZ {
         vkDestroyShaderModule(_renderer->_device, vertexShaderModule, nullptr);
     }
 
+    void VulkanShader::cleanPipeline() {
+        if (_pipeline) {
+            vkDestroyPipeline(_renderer->_device, _pipeline, nullptr);
+        }
+
+        if (_pipelineLayout) {
+            vkDestroyPipelineLayout(_renderer->_device, _pipelineLayout, nullptr);
+        }
+
+        if (_descriptorSetLayout) {
+            vkDestroyDescriptorSetLayout(_renderer->_device, _descriptorSetLayout, nullptr);
+        }
+    }
+
+    void VulkanShader::buildDescriptorSets() {
+        std::vector<VkDescriptorSetLayoutBinding> bindings {GetUniformBufferLayoutBinding()};
+        auto createDescriptorSetLayout = BuildDescriptorSetLayout(bindings);
+
+        VK_CHECK(vkCreateDescriptorSetLayout(_renderer->_device, &createDescriptorSetLayout, nullptr, &_descriptorSetLayout));
+    }
 
 }

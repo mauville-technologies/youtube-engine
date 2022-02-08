@@ -13,4 +13,13 @@ namespace OZZ {
         glm::vec2 uv;
         glm::vec3 normal {0.f, 0.f, 0.f };
     };
+
+    struct UniformBufferObject {
+        glm::mat4 model {1.f };
+        glm::mat4 view { 1.f };
+        glm::mat4 proj { 1.f };
+    };
+
+
+
 }

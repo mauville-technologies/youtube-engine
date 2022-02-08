@@ -56,8 +56,8 @@ namespace OZZ {
 
         pipelineRasterizationStateCreateInfo.polygonMode = polygonMode;
         pipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
-        pipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE;
-        pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        pipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+        pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
         pipelineRasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
         pipelineRasterizationStateCreateInfo.depthBiasConstantFactor = 0.f;

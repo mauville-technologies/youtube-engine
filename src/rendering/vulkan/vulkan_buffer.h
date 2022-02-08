@@ -46,7 +46,7 @@ namespace OZZ {
 
     class VulkanIndexBuffer : public IndexBuffer {
     public:
-        VulkanIndexBuffer(VulkanRenderer* renderer);
+        explicit VulkanIndexBuffer(VulkanRenderer* renderer);
         ~VulkanIndexBuffer();
         void Bind(uint64_t commandHandle) override;
 
@@ -61,6 +61,24 @@ namespace OZZ {
         std::shared_ptr<VulkanBuffer> _buffer { nullptr };
 
         uint64_t _count = 0;
+    };
+
+    class VulkanUniformBuffer : public UniformBuffer {
+    public:
+        explicit VulkanUniformBuffer(VulkanRenderer* renderer);
+        ~VulkanUniformBuffer();
+
+        VkDescriptorSet GetDescriptorSet(VkDescriptorSetLayout* descriptorSetLayout);
+
+        void Bind(uint64_t commandHandle) override;
+
+        void UploadData(const UniformBufferObject &object) override;
+    private:
+        VulkanRenderer* _renderer;
+        VkDescriptorSet _descriptorSet { VK_NULL_HANDLE };
+
+        uint64_t _bufferSize;
+        std::shared_ptr<VulkanBuffer> _buffer { nullptr };
     };
 }
 
