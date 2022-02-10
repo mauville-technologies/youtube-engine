@@ -110,7 +110,8 @@ namespace OZZ {
                 VMA_MEMORY_USAGE_CPU_ONLY);
         stagingBuffer->UploadData((int*)vertices.data(), _bufferSize);
 
-        VulkanBuffer::CopyBuffer(&_renderer->_device, &_renderer->_commandPool, &_renderer->_graphicsQueue,
+        auto& frame = _renderer->getCurrentFrame();
+        VulkanBuffer::CopyBuffer(&_renderer->_device, &frame.CommandPool, &_renderer->_graphicsQueue,
                                  stagingBuffer.get(), _buffer.get(), _bufferSize);
     }
 
@@ -164,7 +165,8 @@ namespace OZZ {
                 VMA_MEMORY_USAGE_CPU_ONLY);
         stagingBuffer->UploadData((int*)indices.data(), _bufferSize);
 
-        VulkanBuffer::CopyBuffer(&_renderer->_device, &_renderer->_commandPool, &_renderer->_graphicsQueue,
+        auto& frame = _renderer->getCurrentFrame();
+        VulkanBuffer::CopyBuffer(&_renderer->_device, &frame.CommandPool, &_renderer->_graphicsQueue,
                                  stagingBuffer.get(), _buffer.get(), _bufferSize);
     }
 

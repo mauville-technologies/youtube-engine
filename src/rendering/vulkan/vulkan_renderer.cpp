@@ -81,11 +81,14 @@ namespace OZZ {
 
         vmaDestroyAllocator(_allocator);
         vkDestroyFence(_device, _renderFence, nullptr);
-        vkDestroySemaphore(_device, _presentSemaphore, nullptr);
-        vkDestroySemaphore(_device, _renderSemaphore, nullptr);
+
+        for (auto& frame : _frames) {
+            vkDestroySemaphore(_device, frame.PresentSemaphore, nullptr);
+            vkDestroySemaphore(_device, frame.RenderSemaphore, nullptr);
+            vkDestroyCommandPool(_device, frame.CommandPool, nullptr);
+        }
 
         vkDestroyDescriptorPool(_device, _descriptorPool, nullptr);
-        vkDestroyCommandPool(_device, _commandPool, nullptr);
 
         vkDestroyDevice(_device, nullptr);
         vkDestroySurfaceKHR(_instance, _surface, nullptr);
@@ -97,8 +100,10 @@ namespace OZZ {
         VK_CHECK(vkWaitForFences(_device, 1, &_renderFence, true, 1000000000)); // 1
         VK_CHECK(vkResetFences(_device, 1, &_renderFence));                     // 0
 
+        auto& frame = getCurrentFrame();
+
         uint32_t swapchainImageIndex;
-        VkResult result = vkAcquireNextImageKHR(_device, _swapchain, 1000000000, _presentSemaphore,
+        VkResult result = vkAcquireNextImageKHR(_device, _swapchain, 1000000000, frame.PresentSemaphore,
                                                 VK_NULL_HANDLE, &swapchainImageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -108,9 +113,9 @@ namespace OZZ {
             VK_CHECK(result);
         }
 
-        VK_CHECK(vkResetCommandBuffer(_mainCommandBuffer, 0));
+        VK_CHECK(vkResetCommandBuffer(frame.MainCommandBuffer, 0));
 
-        VkCommandBuffer cmd = _mainCommandBuffer;
+        VkCommandBuffer cmd = frame.MainCommandBuffer;
 
         VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -178,13 +183,13 @@ namespace OZZ {
         submit.pWaitDstStageMask = &waitStage;
 
         submit.waitSemaphoreCount = 1;
-        submit.pWaitSemaphores = &_presentSemaphore;
+        submit.pWaitSemaphores = &frame.PresentSemaphore;
 
         submit.signalSemaphoreCount = 1;
-        submit.pSignalSemaphores = &_renderSemaphore;
+        submit.pSignalSemaphores = &frame.RenderSemaphore;
 
         submit.commandBufferCount = 1;
-        submit.pCommandBuffers = &_mainCommandBuffer;
+        submit.pCommandBuffers = &frame.MainCommandBuffer;
 
         VK_CHECK(vkQueueSubmit(_graphicsQueue, 1, &submit, _renderFence));
 
@@ -193,7 +198,7 @@ namespace OZZ {
         presentInfoKhr.pSwapchains = &_swapchain;
 
         presentInfoKhr.waitSemaphoreCount = 1;
-        presentInfoKhr.pWaitSemaphores = &_renderSemaphore;
+        presentInfoKhr.pWaitSemaphores = &frame.RenderSemaphore;
 
         presentInfoKhr.pImageIndices = &swapchainImageIndex;
 
@@ -316,7 +321,10 @@ namespace OZZ {
         }
 
         vkDestroyRenderPass(_device, _renderPass, nullptr);
-        vkFreeCommandBuffers(_device, _commandPool, 1, &_mainCommandBuffer);
+
+        for (auto& frame : _frames) {
+            vkFreeCommandBuffers(_device, frame.CommandPool, 1, &frame.MainCommandBuffer);
+        }
 
         vkDestroySwapchainKHR(_device, _swapchain, nullptr);
 
@@ -371,17 +379,18 @@ namespace OZZ {
 
     void VulkanRenderer::createCommands() {
 
-        if (_commandPool == VK_NULL_HANDLE) {
-            VkCommandPoolCreateInfo commandPoolCreateInfo = VulkanInitializers::CommandPoolCreateInfo(
-                    _graphicsQueueFamily,
-                    VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-            VK_CHECK(vkCreateCommandPool(_device, &commandPoolCreateInfo, nullptr, &_commandPool));
+        for (auto& frame : _frames) {
+            if (frame.CommandPool == VK_NULL_HANDLE) {
+                VkCommandPoolCreateInfo commandPoolCreateInfo = VulkanInitializers::CommandPoolCreateInfo(
+                        _graphicsQueueFamily,
+                        VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+                VK_CHECK(vkCreateCommandPool(_device, &commandPoolCreateInfo, nullptr, &frame.CommandPool));
+            }
+
+            VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(
+                    frame.CommandPool);
+            VK_CHECK(vkAllocateCommandBuffers(_device, &commandBufferAllocateInfo, &frame.MainCommandBuffer));
         }
-
-        VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(
-                _commandPool);
-        VK_CHECK(vkAllocateCommandBuffers(_device, &commandBufferAllocateInfo, &_mainCommandBuffer));
-
     }
 
     void VulkanRenderer::createDescriptorPools() {
@@ -450,8 +459,11 @@ namespace OZZ {
         VK_CHECK(vkCreateFence(_device, &fenceCreateInfo, nullptr, &_renderFence));
 
         VkSemaphoreCreateInfo semaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-        VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_presentSemaphore));
-        VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_renderSemaphore));
+
+        for (auto& frame : _frames) {
+            VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &frame.PresentSemaphore));
+            VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &frame.RenderSemaphore));
+        }
     }
 
     void VulkanRenderer::createPipelines() {
@@ -524,6 +536,10 @@ namespace OZZ {
 
         buffer->UploadData(uboObject2);
         _triangleShader2->AddUniformBuffer(buffer);
+    }
+
+    FrameData &VulkanRenderer::getCurrentFrame() {
+        return _frames[_frameNumber % MAX_FRAMES_IN_FLIGHT];
     }
 
 }

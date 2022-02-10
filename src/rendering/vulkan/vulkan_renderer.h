@@ -10,6 +10,16 @@
 #include "vulkan_includes.h"
 
 namespace OZZ {
+    constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+
+    struct FrameData {
+        VkSemaphore PresentSemaphore { VK_NULL_HANDLE };
+        VkSemaphore RenderSemaphore { VK_NULL_HANDLE };
+
+        VkCommandPool CommandPool { VK_NULL_HANDLE };
+        VkCommandBuffer MainCommandBuffer { VK_NULL_HANDLE };
+    };
+
     class VulkanRenderer : public Renderer {
     // Vulkan Objects should have access to the renderer -- so let's make friends
     friend struct VulkanBuffer;
@@ -47,6 +57,8 @@ namespace OZZ {
         void createSyncStructures();
         void createPipelines();
 
+        FrameData& getCurrentFrame();
+
         /*
          * MEMBERS
          */
@@ -82,9 +94,6 @@ namespace OZZ {
         VkQueue _graphicsQueue;
         uint32_t _graphicsQueueFamily;
 
-        VkCommandPool _commandPool { VK_NULL_HANDLE };
-        VkCommandBuffer _mainCommandBuffer { VK_NULL_HANDLE };
-
         static constexpr uint32_t POOL_SIZE_COUNT { 1 };
         static constexpr VkDescriptorPoolSize POOL_SIZES[] {
                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10}
@@ -101,7 +110,8 @@ namespace OZZ {
         /*
          * SYNCHRONIZATION OBJECTS
          */
-        VkSemaphore _presentSemaphore, _renderSemaphore;
+
+        FrameData _frames[MAX_FRAMES_IN_FLIGHT];
         VkFence _renderFence;
 
         /*
