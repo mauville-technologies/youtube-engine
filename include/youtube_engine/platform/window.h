@@ -21,8 +21,9 @@ namespace OZZ {
     public:
         virtual void OpenWindow(WindowData data) = 0;
         virtual bool Update() = 0;
+        virtual ~Window() = default;
 
         virtual std::pair<int, int> GetWindowExtents() = 0;
-        virtual void RequestDrawSurface(std::unordered_map<SurfaceArgs, std::any>) = 0;
+        virtual void RequestDrawSurface(std::unordered_map<SurfaceArgs, int*>) = 0;
     };
 }

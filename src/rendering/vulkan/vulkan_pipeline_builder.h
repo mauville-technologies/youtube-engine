@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include <vulkan/vulkan.h>
+#include "vulkan_includes.h"
 #include <vector>
 
 namespace OZZ {

@@ -19,7 +19,8 @@ namespace OZZ {
         virtual void Init(RendererSettings) = 0;
         virtual void Shutdown() = 0;
         virtual void RenderFrame() = 0;
-
+        
+        virtual ~Renderer() = default;
         virtual std::shared_ptr<Shader> CreateShader() = 0;
         virtual std::shared_ptr<VertexBuffer> CreateVertexBuffer() = 0;
         virtual std::shared_ptr<IndexBuffer> CreateIndexBuffer() = 0;

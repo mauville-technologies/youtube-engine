@@ -5,8 +5,8 @@
 
 #pragma once
 #include <youtube_engine/rendering/types.h>
-#include <vulkan/vulkan.h>
 #include <cstddef>
+#include "vulkan_includes.h"
 
 namespace OZZ {
     struct VertexInputDescription {

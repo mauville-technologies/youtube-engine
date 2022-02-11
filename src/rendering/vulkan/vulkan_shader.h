@@ -4,8 +4,8 @@
 
 #pragma once
 #include <youtube_engine/rendering/shader.h>
-#include <vulkan/vulkan.h>
 #include <youtube_engine/rendering/buffer.h>
+#include "vulkan_includes.h"
 
 namespace OZZ {
     class VulkanRenderer;

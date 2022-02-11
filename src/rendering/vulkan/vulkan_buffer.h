@@ -4,8 +4,9 @@
 
 #pragma once
 #include <youtube_engine/rendering/buffer.h>
-#include <vk_mem_alloc.h>
 #include <memory>
+
+#include "vulkan_includes.h"
 
 namespace OZZ {
     class VulkanRenderer;

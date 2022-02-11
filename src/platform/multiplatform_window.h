@@ -14,7 +14,7 @@ namespace OZZ {
         bool Update() override;
 
         std::pair<int, int> GetWindowExtents() override;
-        void RequestDrawSurface(std::unordered_map<SurfaceArgs, std::any> args) override;
+        void RequestDrawSurface(std::unordered_map<SurfaceArgs, int*> args) override;
 
     private:
         std::unordered_map<InputKey, InputDeviceState> getGamepadState(int joystickId);

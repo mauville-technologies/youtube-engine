@@ -6,9 +6,8 @@
 #pragma once
 
 #include <youtube_engine/rendering/renderer.h>
-#include <vulkan/vulkan.h>
 #include <vector>
-#include <vk_mem_alloc.h>
+#include "vulkan_includes.h"
 
 namespace OZZ {
     class VulkanRenderer : public Renderer {
