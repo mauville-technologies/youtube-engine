@@ -18,6 +18,8 @@ namespace OZZ {
 
         VkCommandPool CommandPool { VK_NULL_HANDLE };
         VkCommandBuffer MainCommandBuffer { VK_NULL_HANDLE };
+
+        VkFence RenderFence { VK_NULL_HANDLE };
     };
 
     class VulkanRenderer : public Renderer {
@@ -66,6 +68,7 @@ namespace OZZ {
 
         //TODO: TEMPORARY FRAME NUMBER
         uint64_t _frameNumber {0};
+        bool _recreateFrameBuffer { false };
 
         RendererSettings _rendererSettings {};
 
@@ -112,7 +115,6 @@ namespace OZZ {
          */
 
         FrameData _frames[MAX_FRAMES_IN_FLIGHT];
-        VkFence _renderFence;
 
         /*
          * References to the shaders created in the system to be rebuilt when swapchain is recreated

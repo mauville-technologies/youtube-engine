@@ -129,6 +129,11 @@ namespace OZZ {
         if (_descriptorSetLayout) {
             vkDestroyDescriptorSetLayout(_renderer->_device, _descriptorSetLayout, nullptr);
         }
+
+        for (auto& uniform : _uniformBuffers) {
+            dynamic_cast<VulkanUniformBuffer*>(uniform.get())->ResetDescriptorSet();
+        }
+
     }
 
     void VulkanShader::buildDescriptorSets() {

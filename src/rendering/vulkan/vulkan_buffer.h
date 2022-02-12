@@ -70,7 +70,7 @@ namespace OZZ {
         ~VulkanUniformBuffer();
 
         VkDescriptorSet GetDescriptorSet(VkDescriptorSetLayout* descriptorSetLayout);
-
+        void ResetDescriptorSet();
         void Bind(uint64_t commandHandle) override;
 
         void UploadData(const UniformBufferObject &object) override;

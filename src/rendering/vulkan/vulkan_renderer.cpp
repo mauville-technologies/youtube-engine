@@ -78,17 +78,19 @@ namespace OZZ {
         }
 
         cleanupSwapchain();
+        vkDestroySwapchainKHR(_device, _swapchain, nullptr);
 
         vmaDestroyAllocator(_allocator);
-        vkDestroyFence(_device, _renderFence, nullptr);
 
         for (auto& frame : _frames) {
             vkDestroySemaphore(_device, frame.PresentSemaphore, nullptr);
             vkDestroySemaphore(_device, frame.RenderSemaphore, nullptr);
+            vkDestroyFence(_device, frame.RenderFence, nullptr);
+
             vkDestroyCommandPool(_device, frame.CommandPool, nullptr);
         }
 
-        vkDestroyDescriptorPool(_device, _descriptorPool, nullptr);
+
 
         vkDestroyDevice(_device, nullptr);
         vkDestroySurfaceKHR(_instance, _surface, nullptr);
@@ -97,25 +99,22 @@ namespace OZZ {
     }
 
     void VulkanRenderer::RenderFrame() {
-        VK_CHECK(vkWaitForFences(_device, 1, &_renderFence, true, 1000000000)); // 1
-        VK_CHECK(vkResetFences(_device, 1, &_renderFence));                     // 0
 
-        auto& frame = getCurrentFrame();
+        VK_CHECK(vkWaitForFences(_device, 1, &getCurrentFrame().RenderFence, true, 1000000000)); // 1
+        VK_CHECK(vkResetFences(_device, 1, &getCurrentFrame().RenderFence));                     // 0
 
         uint32_t swapchainImageIndex;
-        VkResult result = vkAcquireNextImageKHR(_device, _swapchain, 1000000000, frame.PresentSemaphore,
+        VkResult result = vkAcquireNextImageKHR(_device, _swapchain, 1000000000, getCurrentFrame().PresentSemaphore,
                                                 VK_NULL_HANDLE, &swapchainImageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             recreateSwapchain();
             return;
-        } else {
-            VK_CHECK(result);
         }
 
-        VK_CHECK(vkResetCommandBuffer(frame.MainCommandBuffer, 0));
+        VK_CHECK(vkResetCommandBuffer(getCurrentFrame().MainCommandBuffer, 0));
 
-        VkCommandBuffer cmd = frame.MainCommandBuffer;
+        VkCommandBuffer cmd = getCurrentFrame().MainCommandBuffer;
 
         VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -157,7 +156,6 @@ namespace OZZ {
         uboObject.proj[1][1] *= -1;
 
         _triangleUniformBuffer->UploadData(uboObject);
-//        _triangleUniformBuffer2->UploadData(uboObject);
 
         vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -183,28 +181,29 @@ namespace OZZ {
         submit.pWaitDstStageMask = &waitStage;
 
         submit.waitSemaphoreCount = 1;
-        submit.pWaitSemaphores = &frame.PresentSemaphore;
+        submit.pWaitSemaphores = &getCurrentFrame().PresentSemaphore;
 
         submit.signalSemaphoreCount = 1;
-        submit.pSignalSemaphores = &frame.RenderSemaphore;
+        submit.pSignalSemaphores = &getCurrentFrame().RenderSemaphore;
 
         submit.commandBufferCount = 1;
-        submit.pCommandBuffers = &frame.MainCommandBuffer;
+        submit.pCommandBuffers = &getCurrentFrame().MainCommandBuffer;
 
-        VK_CHECK(vkQueueSubmit(_graphicsQueue, 1, &submit, _renderFence));
+        vkQueueSubmit(_graphicsQueue, 1, &submit, getCurrentFrame().RenderFence);
 
         VkPresentInfoKHR presentInfoKhr{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
         presentInfoKhr.swapchainCount = 1;
         presentInfoKhr.pSwapchains = &_swapchain;
 
         presentInfoKhr.waitSemaphoreCount = 1;
-        presentInfoKhr.pWaitSemaphores = &frame.RenderSemaphore;
+        presentInfoKhr.pWaitSemaphores = &getCurrentFrame().RenderSemaphore;
 
         presentInfoKhr.pImageIndices = &swapchainImageIndex;
 
         result = vkQueuePresentKHR(_graphicsQueue, &presentInfoKhr);
 
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || _recreateFrameBuffer) {
+            _recreateFrameBuffer = false;
             recreateSwapchain();
         } else {
             VK_CHECK(result);
@@ -313,6 +312,10 @@ namespace OZZ {
         allocatorCreateInfo.device = _device;
         allocatorCreateInfo.instance = _instance;
         vmaCreateAllocator(&allocatorCreateInfo, &_allocator);
+
+        ServiceLocator::GetWindow()->RegisterWindowResizedCallback([this](){
+            _recreateFrameBuffer = true;
+        });
     }
 
     void VulkanRenderer::cleanupSwapchain() {
@@ -320,30 +323,30 @@ namespace OZZ {
             vkDestroyFramebuffer(_device, framebuffer, nullptr);
         }
 
-        vkDestroyRenderPass(_device, _renderPass, nullptr);
-
         for (auto& frame : _frames) {
             vkFreeCommandBuffers(_device, frame.CommandPool, 1, &frame.MainCommandBuffer);
         }
 
-        vkDestroySwapchainKHR(_device, _swapchain, nullptr);
+        vkDestroyRenderPass(_device, _renderPass, nullptr);
 
         for (auto imageView: _swapchainImageViews) {
             vkDestroyImageView(_device, imageView, nullptr);
         }
+
+        vkDestroyDescriptorPool(_device, _descriptorPool, nullptr);
     }
 
     void VulkanRenderer::recreateSwapchain() {
         vkDeviceWaitIdle(_device);
-
         cleanupSwapchain();
 
         createSwapchain();
         createCommands();
         createDefaultRenderPass();
         createFramebuffers();
-        rebuildShaders();
+        createDescriptorPools();
 
+        rebuildShaders();
         //TODO: RESET SHADERS!
     }
 
@@ -357,16 +360,19 @@ namespace OZZ {
 
     void VulkanRenderer::createSwapchain() {
 
+        VkSwapchainKHR oldSwapchain = _swapchain;
+
         auto[width, height] = ServiceLocator::GetWindow()->GetWindowExtents();
         _windowExtent.width = width;
         _windowExtent.height = height;
 
         vkb::SwapchainBuilder swapchainBuilder{_physicalDevice, _device, _surface};
+
         vkb::Swapchain vkbSwapchain = swapchainBuilder
                 .use_default_format_selection()
                 .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)     // Hard VSync
                 .set_desired_extent(width, height)
-                .set_old_swapchain(VK_NULL_HANDLE)
+                .set_old_swapchain(oldSwapchain)
                 .build()
                 .value();
 
@@ -375,6 +381,10 @@ namespace OZZ {
         _swapchainImages = vkbSwapchain.get_images().value();
         _swapchainImageViews = vkbSwapchain.get_image_views().value();
         _swapchainImageFormat = vkbSwapchain.image_format;
+
+        if (oldSwapchain) {
+            vkDestroySwapchainKHR(_device, oldSwapchain, nullptr);
+        }
     }
 
     void VulkanRenderer::createCommands() {
@@ -400,7 +410,7 @@ namespace OZZ {
         descriptorPoolCreateInfo.poolSizeCount = POOL_SIZE_COUNT;
         descriptorPoolCreateInfo.pPoolSizes = POOL_SIZES;
 
-        vkCreateDescriptorPool(_device, &descriptorPoolCreateInfo, nullptr, &_descriptorPool);
+        VK_CHECK(vkCreateDescriptorPool(_device, &descriptorPoolCreateInfo, nullptr, &_descriptorPool));
 
     }
 
@@ -456,11 +466,12 @@ namespace OZZ {
     void VulkanRenderer::createSyncStructures() {
         VkFenceCreateInfo fenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
         fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        VK_CHECK(vkCreateFence(_device, &fenceCreateInfo, nullptr, &_renderFence));
 
         VkSemaphoreCreateInfo semaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
         for (auto& frame : _frames) {
+            VK_CHECK(vkCreateFence(_device, &fenceCreateInfo, nullptr, &frame.RenderFence));
+
             VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &frame.PresentSemaphore));
             VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &frame.RenderSemaphore));
         }

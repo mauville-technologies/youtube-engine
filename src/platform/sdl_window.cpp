@@ -27,6 +27,17 @@ namespace OZZ {
         // Do stuff with events
         if (event.type == SDL_QUIT) return true;
 
+        if (event.type == SDL_WINDOWEVENT) {
+            switch(event.window.event) {
+                case SDL_WINDOWEVENT_RESIZED:{
+                    if (_windowResizedCallback) {
+                        _windowResizedCallback();
+                    }
+                    break;
+                }
+
+            }
+        }
         return false;
     }
 

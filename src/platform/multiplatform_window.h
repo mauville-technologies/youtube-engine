@@ -15,10 +15,13 @@ namespace OZZ {
 
         std::pair<int, int> GetWindowExtents() override;
         void RequestDrawSurface(std::unordered_map<SurfaceArgs, int*> args) override;
+        void RegisterWindowResizedCallback(std::function<void()> callback) override { _resizeCallback = callback; }
 
     private:
         std::unordered_map<InputKey, InputDeviceState> getGamepadState(int joystickId);
         MultiplatformInput _input {};
         GLFWwindow *_window = nullptr;
+
+        std::function<void()> _resizeCallback{};
     };
 }

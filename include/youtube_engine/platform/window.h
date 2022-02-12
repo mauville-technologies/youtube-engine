@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <any>
 #include <tuple>
+#include <functional>
 
 namespace OZZ {
     enum class SurfaceArgs {
@@ -25,5 +26,6 @@ namespace OZZ {
 
         virtual std::pair<int, int> GetWindowExtents() = 0;
         virtual void RequestDrawSurface(std::unordered_map<SurfaceArgs, int*>) = 0;
+        virtual void RegisterWindowResizedCallback(std::function<void()>) = 0;
     };
 }

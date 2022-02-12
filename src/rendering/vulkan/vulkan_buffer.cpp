@@ -240,7 +240,9 @@ namespace OZZ {
         _buffer->UploadData((int*)&object, _bufferSize);
     }
 
-
+    void VulkanUniformBuffer::ResetDescriptorSet() {
+        _descriptorSet = VK_NULL_HANDLE;
+    }
 
 
 }
