@@ -71,6 +71,21 @@ namespace OZZ {
         vkFreeCommandBuffers(*device, *commandPool, 1, &commandBuffer);
     }
 
+    void VulkanBuffer::CopyBufferToImage(VkCommandBuffer cmd, VkImageLayout dstImageLayout, VulkanBuffer *srcBuffer, VkImage *dstImage, VkExtent3D imageExtent) {
+        VkBufferImageCopy copyRegion = {};
+        copyRegion.bufferOffset = 0;
+        copyRegion.bufferRowLength = 0;
+        copyRegion.bufferImageHeight = 0;
+
+        copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.imageSubresource.mipLevel = 0;
+        copyRegion.imageSubresource.baseArrayLayer = 0;
+        copyRegion.imageSubresource.layerCount = 1;
+        copyRegion.imageExtent = imageExtent;
+
+        vkCmdCopyBufferToImage(cmd, srcBuffer->Buffer, *dstImage, dstImageLayout, 1, &copyRegion);
+    }
+
 
     /*
      *

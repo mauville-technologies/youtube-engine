@@ -20,6 +20,10 @@ namespace OZZ {
         glm::mat4 proj { 1.f };
     };
 
-
+    enum class ColorType {
+        FLOAT,
+        UNSIGNED_CHAR3,
+        UNSIGNED_CHAR4,
+    };
 
 }

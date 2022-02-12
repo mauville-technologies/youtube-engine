@@ -29,6 +29,7 @@ namespace OZZ {
     friend class VulkanIndexBuffer;
     friend class VulkanUniformBuffer;
     friend class VulkanShader;
+    friend class VulkanTexture;
 
         /*
          * FUNCTIONS
@@ -42,6 +43,7 @@ namespace OZZ {
         std::shared_ptr<VertexBuffer> CreateVertexBuffer() override;
         std::shared_ptr<IndexBuffer> CreateIndexBuffer() override;
         std::shared_ptr<UniformBuffer> CreateUniformBuffer() override;
+        std::shared_ptr<Texture> CreateTexture() override;
 
 
     private:
@@ -99,7 +101,8 @@ namespace OZZ {
 
         static constexpr uint32_t POOL_SIZE_COUNT { 1 };
         static constexpr VkDescriptorPoolSize POOL_SIZES[] {
-                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10}
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
+                { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10 }
         };
 
         VkDescriptorPool _descriptorPool { VK_NULL_HANDLE };
@@ -133,7 +136,8 @@ namespace OZZ {
 
         std::shared_ptr<VertexBuffer> _triangle2Buffer { nullptr };
         std::shared_ptr<IndexBuffer> _triangle2IndexBuffer { nullptr };
-
+        std::shared_ptr<Texture> _triangleTexture1 { nullptr };
+        std::shared_ptr<Texture> _triangleTexture2 { nullptr };
     };
 }
 

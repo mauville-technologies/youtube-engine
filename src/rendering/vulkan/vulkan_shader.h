@@ -5,6 +5,7 @@
 #pragma once
 #include <youtube_engine/rendering/shader.h>
 #include <youtube_engine/rendering/buffer.h>
+#include <youtube_engine/rendering/texture.h>
 #include "vulkan_includes.h"
 
 namespace OZZ {
@@ -19,6 +20,7 @@ namespace OZZ {
         void Bind(uint64_t commandHandle) override;
         void Load(const std::string&& vertexShader, const std::string&& fragmentShader) override;
         void AddUniformBuffer(std::shared_ptr<UniformBuffer> buffer) override;
+        void AddTexture(std::shared_ptr<Texture> texture) override;
 
         ~VulkanShader() override;
     private:
@@ -31,6 +33,8 @@ namespace OZZ {
          * PIPELINES
          */
         VkDescriptorSetLayout _descriptorSetLayout { VK_NULL_HANDLE };
+        VkDescriptorSetLayout _textureSetLayout { VK_NULL_HANDLE };
+
         VkPipelineLayout _pipelineLayout{ VK_NULL_HANDLE };
         VkPipeline _pipeline { VK_NULL_HANDLE };
 
@@ -41,6 +45,7 @@ namespace OZZ {
         std::string _fragmentShader;
 
         std::vector<std::shared_ptr<UniformBuffer>> _uniformBuffers {};
+        std::vector<std::shared_ptr<Texture>> _textures {};
     };
 
 

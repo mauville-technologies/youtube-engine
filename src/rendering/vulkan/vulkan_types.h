@@ -68,15 +68,26 @@ namespace OZZ {
      * UNIFORM BUFFER THINGS
      * TODO: This needs to be abstracted
      */
-    inline VkDescriptorSetLayoutBinding GetUniformBufferLayoutBinding() {
+    inline VkDescriptorSetLayoutBinding GetUniformBufferLayoutBinding(int binding) {
         VkDescriptorSetLayoutBinding uboLayoutBinding {};
-        uboLayoutBinding.binding = 0;
+        uboLayoutBinding.binding = binding;
         uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         uboLayoutBinding.descriptorCount = 1; // could be an array?
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         uboLayoutBinding.pImmutableSamplers = nullptr;  // Likely for textures
 
         return uboLayoutBinding;
+    }
+
+    inline VkDescriptorSetLayoutBinding GetTextureLayoutBinding(int binding) {
+        VkDescriptorSetLayoutBinding textureLayoutBinding {};
+        textureLayoutBinding.binding = binding;
+        textureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        textureLayoutBinding.descriptorCount = 1; // could be an array?
+        textureLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        textureLayoutBinding.pImmutableSamplers = nullptr;  // Likely for textures
+
+        return textureLayoutBinding;
     }
 
     inline VkDescriptorSetLayoutCreateInfo BuildDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& bindings) {
@@ -86,4 +97,15 @@ namespace OZZ {
 
         return vkDescriptorSetLayoutCreateInfo;
     };
+
+    inline VkFormat ColorTypeToVulkanFormatType(ColorType colorType) {
+        switch(colorType) {
+            case ColorType::FLOAT:
+                return VK_FORMAT_R32G32B32_SFLOAT;
+            case ColorType::UNSIGNED_CHAR4:
+                return VK_FORMAT_R8G8B8A8_SRGB;
+            default:
+                return VK_FORMAT_R8G8B8_SRGB;
+        }
+    }
 }

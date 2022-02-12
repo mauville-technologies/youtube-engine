@@ -34,6 +34,7 @@ target_include_directories(${PROJECT_NAME}
         glfw
         vk-bootstrap
         VulkanMemoryAllocator
+        external/stb
 )
 
 target_link_libraries(${PROJECT_NAME}

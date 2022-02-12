@@ -14,6 +14,7 @@
 #include "vulkan_utilities.h"
 #include "vulkan_shader.h"
 #include "vulkan_buffer.h"
+#include "vulkan_texture.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -72,6 +73,15 @@ namespace OZZ {
         if (_triangleUniformBuffer) {
             _triangleUniformBuffer.reset();
             _triangleUniformBuffer = nullptr;
+        }
+
+        if (_triangleTexture1) {
+            _triangleTexture1.reset();
+            _triangleTexture1 = nullptr;
+        }
+        if (_triangleTexture2) {
+            _triangleTexture2.reset();
+            _triangleTexture2 = nullptr;
         }
 
         cleanupSwapchain();
@@ -161,6 +171,7 @@ namespace OZZ {
 
         _triangle2Buffer->Bind(reinterpret_cast<uint64_t>(cmd));
         _triangle2IndexBuffer->Bind(reinterpret_cast<uint64_t>(cmd));
+
         vkCmdDrawIndexed(cmd, _triangle2IndexBuffer->GetCount(), 1, 0, 0, 0);
 
         _triangleShader2->Bind(reinterpret_cast<uint64_t>(cmd));
@@ -229,6 +240,10 @@ namespace OZZ {
 
     std::shared_ptr<UniformBuffer> VulkanRenderer::CreateUniformBuffer() {
         return std::make_shared<VulkanUniformBuffer>(this);
+    }
+
+    std::shared_ptr<Texture> VulkanRenderer::CreateTexture() {
+        return std::make_shared<VulkanTexture>(this);
     }
 
     /*
@@ -367,7 +382,7 @@ namespace OZZ {
 
         vkb::Swapchain vkbSwapchain = swapchainBuilder
                 .use_default_format_selection()
-                .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)     // Hard VSync
+                .set_desired_present_mode(VK_PRESENT_MODE_MAILBOX_KHR)     // Hard VSync
                 .set_desired_extent(width, height)
                 .set_old_swapchain(oldSwapchain)
                 .build()
@@ -481,18 +496,24 @@ namespace OZZ {
                                             Vertex{
                                                     .position = {0.75f, 0.75f, 0.f},
                                                     .color = {1.f, 0.f, 0.f, 1.f},
+                                                    .uv = {1.f, 1.f}
                                             },
                                             Vertex{
                                                     .position = {-0.75f, 0.75f, 0.f},
                                                     .color = {0.f, 1.f, 0.f, 1.f},
+                                                    .uv = {0.f, 1.f}
+
                                             },
                                             Vertex{
                                                     .position = {-0.75f, -0.75f, 0.f},
                                                     .color = {0.f, 0.f, 1.f, 1.f},
+                                                    .uv = {0.f, 0.f}
+
                                             },
                                             Vertex{
                                                     .position = {0.75f, -0.75f, 0.f},
                                                     .color = {0.f, 0.f, 1.f, 1.f},
+                                                    .uv = {1.f, 0.f}
                                             },
                                     });
 
@@ -504,14 +525,17 @@ namespace OZZ {
                                              Vertex{
                                                      .position = {1.f, 1.f, 0.f},
                                                      .color = {1.f, 1.f, 1.f, 1.f},
+                                                     .uv = {1.f, 0.f}
                                              },
                                              Vertex{
                                                      .position = {-1.f, 1.f, 0.f},
                                                      .color = {1.f, 1.f, 1.f, 1.f},
+                                                     .uv = { 0.f, 0.f}
                                              },
                                              Vertex{
                                                      .position = {0.f, -1.f, 0.f},
                                                      .color = {1.f, 1.f, 1.f, 1.f},
+                                                     .uv = {0.5, 1.f}
                                              }
                                      });
 
@@ -544,10 +568,20 @@ namespace OZZ {
 
         buffer->UploadData(uboObject2);
         _triangleShader2->AddUniformBuffer(buffer);
+
+        _triangleTexture1 = CreateTexture();
+        _triangleTexture1->UploadData(ImageData("textures/bricks.png", true));
+
+        _triangleTexture2 = CreateTexture();
+        _triangleTexture2->UploadData(ImageData("textures/texture.jpg", true));
+
+        _triangleShader->AddTexture(_triangleTexture1);
+        _triangleShader2->AddTexture(_triangleTexture2);
     }
 
     FrameData &VulkanRenderer::getCurrentFrame() {
         return _frames[_frameNumber % MAX_FRAMES_IN_FLIGHT];
     }
+
 
 }

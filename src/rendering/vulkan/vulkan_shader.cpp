@@ -9,6 +9,7 @@
 #include "vulkan_types.h"
 #include "vulkan_renderer.h"
 #include "vulkan_buffer.h"
+#include "vulkan_texture.h"
 
 namespace OZZ {
     VulkanShader::VulkanShader(VulkanRenderer* renderer) :
@@ -33,12 +34,26 @@ namespace OZZ {
                                     0, 1, &descriptorSet, 0, nullptr);
         }
 
+        for (auto& texture : _textures) {
+            auto descriptorSet = dynamic_cast<VulkanTexture*>(texture.get())->GetDescriptorSet(&_textureSetLayout);
+
+            vkCmdBindDescriptorSets((VkCommandBuffer) commandHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
+                                    1, 1, &descriptorSet, 0, nullptr);
+        }
+
+
+
         vkCmdBindPipeline(VkCommandBuffer(commandHandle), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
     }
 
 
     void VulkanShader::AddUniformBuffer(std::shared_ptr<UniformBuffer> buffer) {
         _uniformBuffers.push_back(buffer);
+    }
+
+
+    void VulkanShader::AddTexture(std::shared_ptr<Texture> texture) {
+        _textures.push_back(texture);
     }
 
     void VulkanShader::Load(const std::string&& vertexShader, const std::string&& fragmentShader) {
@@ -59,8 +74,9 @@ namespace OZZ {
 
         auto pipelineLayoutInfo = VulkanInitializers::PipelineLayoutCreateInfo();
 
-        pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &_descriptorSetLayout;
+        VkDescriptorSetLayout layouts[] = { _descriptorSetLayout, _textureSetLayout };
+        pipelineLayoutInfo.setLayoutCount = 2;
+        pipelineLayoutInfo.pSetLayouts = layouts;
 
         // descriptor set layout goes here
         // therefore they probably belong to the shader
@@ -84,10 +100,10 @@ namespace OZZ {
         // Specify vertex attributes
         pipelineBuilder._vertexInputInfo = VulkanInitializers::PipelineVertexInputStateCreateInfo();
         pipelineBuilder._vertexInputInfo.pVertexAttributeDescriptions = vertexInputDescription.attributes.data();
-        pipelineBuilder._vertexInputInfo.vertexAttributeDescriptionCount = vertexInputDescription.attributes.size();
+        pipelineBuilder._vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputDescription.attributes.size());
 
         pipelineBuilder._vertexInputInfo.pVertexBindingDescriptions = vertexInputDescription.bindings.data();
-        pipelineBuilder._vertexInputInfo.vertexBindingDescriptionCount = vertexInputDescription.bindings.size();
+        pipelineBuilder._vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputDescription.bindings.size());
 
         pipelineBuilder._inputAssembly = VulkanInitializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
@@ -130,6 +146,10 @@ namespace OZZ {
             vkDestroyDescriptorSetLayout(_renderer->_device, _descriptorSetLayout, nullptr);
         }
 
+        if (_textureSetLayout) {
+            vkDestroyDescriptorSetLayout(_renderer->_device, _textureSetLayout, nullptr);
+        }
+
         for (auto& uniform : _uniformBuffers) {
             dynamic_cast<VulkanUniformBuffer*>(uniform.get())->ResetDescriptorSet();
         }
@@ -137,10 +157,15 @@ namespace OZZ {
     }
 
     void VulkanShader::buildDescriptorSets() {
-        std::vector<VkDescriptorSetLayoutBinding> bindings {GetUniformBufferLayoutBinding()};
+        std::vector<VkDescriptorSetLayoutBinding> bindings {GetUniformBufferLayoutBinding(0)};
         auto createDescriptorSetLayout = BuildDescriptorSetLayout(bindings);
 
         VK_CHECK(vkCreateDescriptorSetLayout(_renderer->_device, &createDescriptorSetLayout, nullptr, &_descriptorSetLayout));
+
+        bindings = { GetTextureLayoutBinding(0)};
+        createDescriptorSetLayout = BuildDescriptorSetLayout(bindings);
+        VK_CHECK(vkCreateDescriptorSetLayout(_renderer->_device, &createDescriptorSetLayout, nullptr, &_textureSetLayout));
     }
+
 
 }

@@ -8,6 +8,7 @@
 #include <memory>
 #include <youtube_engine/rendering/shader.h>
 #include <youtube_engine/rendering/buffer.h>
+#include <youtube_engine/rendering/texture.h>
 
 namespace OZZ {
     struct RendererSettings {
@@ -25,6 +26,7 @@ namespace OZZ {
         virtual std::shared_ptr<VertexBuffer> CreateVertexBuffer() = 0;
         virtual std::shared_ptr<IndexBuffer> CreateIndexBuffer() = 0;
         virtual std::shared_ptr<UniformBuffer> CreateUniformBuffer() = 0;
+        virtual std::shared_ptr<Texture> CreateTexture() = 0;
 
     };
 }

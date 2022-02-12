@@ -6,8 +6,6 @@
 #include <filesystem>
 #include <string>
 
-#define ASSETS_DIR(x)
-
 #ifndef ASSETS_DIR_NAME
 #define ASSETS_DIR_NAME "assets"
 #endif

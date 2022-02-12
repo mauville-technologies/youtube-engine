@@ -22,6 +22,9 @@ namespace OZZ {
 
         static void CopyBuffer(VkDevice* device, VkCommandPool* commandPool, VkQueue* queue,
                                VulkanBuffer* srcBuffer, VulkanBuffer *dstBuffer, VkDeviceSize size);
+
+        static void CopyBufferToImage(VkCommandBuffer cmd, VkImageLayout dstImageLayout, VulkanBuffer* srcBuffer,
+                                      VkImage* dstImage, VkExtent3D imageExtent);
     private:
         VmaAllocator* _allocator { nullptr };
     };
@@ -29,7 +32,7 @@ namespace OZZ {
     class VulkanVertexBuffer : public VertexBuffer {
     public:
         explicit VulkanVertexBuffer(VulkanRenderer* renderer);
-        ~VulkanVertexBuffer();
+        ~VulkanVertexBuffer() override;
 
 
         void UploadData(const std::vector<Vertex>& vertices) override;
@@ -48,7 +51,7 @@ namespace OZZ {
     class VulkanIndexBuffer : public IndexBuffer {
     public:
         explicit VulkanIndexBuffer(VulkanRenderer* renderer);
-        ~VulkanIndexBuffer();
+        ~VulkanIndexBuffer() override;
         void Bind(uint64_t commandHandle) override;
 
         void UploadData(const std::vector<uint32_t> &vector) override;
@@ -67,7 +70,7 @@ namespace OZZ {
     class VulkanUniformBuffer : public UniformBuffer {
     public:
         explicit VulkanUniformBuffer(VulkanRenderer* renderer);
-        ~VulkanUniformBuffer();
+        ~VulkanUniformBuffer() override;
 
         VkDescriptorSet GetDescriptorSet(VkDescriptorSetLayout* descriptorSetLayout);
         void ResetDescriptorSet();
