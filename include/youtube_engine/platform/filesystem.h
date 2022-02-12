@@ -4,6 +4,13 @@
 
 #pragma once
 #include <filesystem>
+#include <string>
+
+#define ASSETS_DIR(x)
+
+#ifndef ASSETS_DIR_NAME
+#define ASSETS_DIR_NAME "assets"
+#endif
 
 namespace OZZ {
     using Path = std::filesystem::path;
@@ -16,11 +23,11 @@ namespace OZZ {
         }
 
         static inline Path GetShaderPath() {
-            return GetRootPath() /= "shaders";
+            return GetAssetPath() /= "shaders";
         }
 
         static inline Path GetAssetPath() {
-            return GetRootPath() /= "assets";
+            return GetRootPath() /= ASSETS_DIR_NAME;
         }
     };
 }

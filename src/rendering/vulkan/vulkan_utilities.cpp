@@ -10,7 +10,6 @@
 #include <vector>
 
 namespace OZZ {
-
     bool VulkanUtilities::LoadShaderModule(const string &shaderName, VkDevice device, VkShaderModule &outShaderModule) {
         std::ifstream file(Filesystem::GetShaderPath() / shaderName, std::ios::ate | std::ios::binary);
 
@@ -23,7 +22,7 @@ namespace OZZ {
         std::vector<uint32_t> buffer(filesize / sizeof(uint32_t));
 
         file.seekg(0);
-        file.read((char*)buffer.data(), filesize);
+        file.read((char*)buffer.data(), static_cast<std::streamsize>(filesize));
         file.close();
 
         VkShaderModuleCreateInfo shaderModuleCreateInfo { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };

@@ -3,13 +3,16 @@ project(youtube_cpp_engine VERSION 0.0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
+if (NOT DEFINED ASSETS_DIR_NAME)
+    set(ASSETS_DIR_NAME assets)
+endif()
+
 # add external libraries
 add_subdirectory(external/glm)
 add_subdirectory(external/glfw)
 add_subdirectory(external/SDL)
 add_subdirectory(external/vk-bootstrap)
 add_subdirectory(external/VulkanMemoryAllocator)
-
 
 # library find functions
 find_package(Vulkan REQUIRED)
@@ -45,15 +48,20 @@ target_link_libraries(${PROJECT_NAME}
         VulkanMemoryAllocator
 )
 
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+        ASSETS_DIR_NAME="${ASSETS_DIR_NAME}"
+)
+
 # SHADER COMPILATION
+
 file (GLOB SHADERS shaders/*.frag shaders/*.vert)
 
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-        COMMAND mkdir -p ${CMAKE_BINARY_DIR}/shaders)
+        COMMAND mkdir -p ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ASSETS_DIR_NAME}/shaders)
 
 foreach(shader ${SHADERS})
     get_filename_component(SHADER_NAME ${shader} NAME)
 
     add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-            COMMAND glslc -c ${shader} -o ${CMAKE_BINARY_DIR}/shaders/${SHADER_NAME}.spv)
+            COMMAND glslc -c ${shader} -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ASSETS_DIR_NAME}/shaders/${SHADER_NAME}.spv)
 endforeach()
