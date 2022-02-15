@@ -14,9 +14,9 @@ namespace OZZ {
     VulkanTexture::VulkanTexture(VulkanRenderer *renderer) : _renderer(renderer) {}
 
     VulkanTexture::~VulkanTexture() {
+        vkDestroySampler(_renderer->_device, _sampler, nullptr);
         vmaDestroyImage(_renderer->_allocator, _image, _allocation);
         vkDestroyImageView(_renderer->_device, _imageView, nullptr);
-        vkDestroySampler(_renderer->_device, _sampler, nullptr);
     }
 
 
@@ -64,8 +64,6 @@ namespace OZZ {
                 descriptorSetWrite.pImageInfo = &imageBufferInfo;
 
                 vkUpdateDescriptorSets(_renderer->_device, 1, &descriptorSetWrite, 0, nullptr);
-
-
             }
         }
 
@@ -73,7 +71,12 @@ namespace OZZ {
     }
 
     void VulkanTexture::ResetDescriptorSet() {
+        _descriptorSet = VK_NULL_HANDLE;
 
+        if (_sampler) {
+            vkDestroySampler(_renderer->_device, _sampler, nullptr);
+            _sampler = VK_NULL_HANDLE;
+        }
     }
 
     void VulkanTexture::Bind() {
@@ -213,7 +216,4 @@ namespace OZZ {
     int *VulkanTexture::GetHandle() const {
         return nullptr;
     }
-
-
-
 }

@@ -154,6 +154,10 @@ namespace OZZ {
             dynamic_cast<VulkanUniformBuffer*>(uniform.get())->ResetDescriptorSet();
         }
 
+        for (auto& texture: _textures) {
+            dynamic_cast<VulkanTexture*>(texture.get())->ResetDescriptorSet();
+        }
+
     }
 
     void VulkanShader::buildDescriptorSets() {
