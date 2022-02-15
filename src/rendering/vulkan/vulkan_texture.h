@@ -13,7 +13,7 @@ namespace OZZ {
         explicit VulkanTexture(VulkanRenderer* renderer);
         ~VulkanTexture() override;
 
-        VkDescriptorSet GetDescriptorSet(VkDescriptorSetLayout* descriptorSetLayout);
+        void WriteToDescriptorSet(VkDescriptorSet descriptorSet, int dstBinding);
         void ResetDescriptorSet();
 
         void Bind() override;
@@ -35,8 +35,6 @@ namespace OZZ {
         VmaAllocation _allocation { VK_NULL_HANDLE };
         VkImageView _imageView { VK_NULL_HANDLE };
         VkSampler _sampler { VK_NULL_HANDLE };
-
-        VkDescriptorSet _descriptorSet { VK_NULL_HANDLE };
     };
 }
 

@@ -31,7 +31,7 @@ namespace OZZ {
         updateColorType();
     }
 
-    ImageData::ImageData(uint32_t width, uint32_t height, glm::vec3 color) { // NOLINT
+    ImageData::ImageData(uint32_t width, uint32_t height, glm::vec4 color) { // NOLINT
         _width = static_cast<int>(width);
         _height = static_cast<int>(height);
         _channels = 4;
@@ -39,8 +39,8 @@ namespace OZZ {
 
         _data.resize(_width * _height * _channels);
 
-        for (uint32_t i = 0; i < width * height * 3; i ++) {
-            auto colorByte = static_cast<unsigned char>(color[i % 3] * 255.f);
+        for (uint32_t i = 0; i < width * height * 4; i ++) {
+            auto colorByte = static_cast<unsigned char>(color[i % 4] * 255.f);
             _data[i] = colorByte;
         }
     }

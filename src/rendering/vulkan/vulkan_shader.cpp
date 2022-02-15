@@ -34,13 +34,10 @@ namespace OZZ {
                                     0, 1, &descriptorSet, 0, nullptr);
         }
 
-        for (auto& texture : _textures) {
-            auto descriptorSet = dynamic_cast<VulkanTexture*>(texture.get())->GetDescriptorSet(&_textureSetLayout);
 
-            vkCmdBindDescriptorSets(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
-                                    1, 1, &descriptorSet, 0, nullptr);
-        }
 
+        vkCmdBindDescriptorSets(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
+                                1, 1, &_texturesDescriptorSet, 0, nullptr);
 
 
         vkCmdBindPipeline(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
@@ -49,11 +46,13 @@ namespace OZZ {
 
     void VulkanShader::AddUniformBuffer(std::shared_ptr<UniformBuffer> buffer) {
         _uniformBuffers.push_back(buffer);
+        Rebuild();
     }
 
 
     void VulkanShader::AddTexture(std::shared_ptr<Texture> texture) {
         _textures.push_back(texture);
+        Rebuild();
     }
 
     void VulkanShader::Load(const std::string&& vertexShader, const std::string&& fragmentShader) {
@@ -74,9 +73,14 @@ namespace OZZ {
 
         auto pipelineLayoutInfo = VulkanInitializers::PipelineLayoutCreateInfo();
 
-        VkDescriptorSetLayout layouts[] = { _descriptorSetLayout, _textureSetLayout };
-        pipelineLayoutInfo.setLayoutCount = 2;
-        pipelineLayoutInfo.pSetLayouts = layouts;
+        std::vector<VkDescriptorSetLayout> layouts {_descriptorSetLayout};
+
+        if (_textureSetLayout) {
+            layouts.push_back(_textureSetLayout);
+        }
+
+        pipelineLayoutInfo.setLayoutCount = layouts.size();
+        pipelineLayoutInfo.pSetLayouts = layouts.data();
 
         // descriptor set layout goes here
         // therefore they probably belong to the shader
@@ -134,6 +138,8 @@ namespace OZZ {
     }
 
     void VulkanShader::cleanPipeline() {
+        _texturesDescriptorSet = VK_NULL_HANDLE;
+
         if (_pipeline) {
             vkDestroyPipeline(_renderer->_device, _pipeline, nullptr);
         }
@@ -166,9 +172,26 @@ namespace OZZ {
 
         VK_CHECK(vkCreateDescriptorSetLayout(_renderer->_device, &createDescriptorSetLayout, nullptr, &_descriptorSetLayout));
 
-        bindings = { GetTextureLayoutBinding(0)};
+        bindings = {};
+
+        for (size_t i = 0; i < _textures.size(); i++) {
+            bindings.push_back(GetTextureLayoutBinding(i));
+        }
+
         createDescriptorSetLayout = BuildDescriptorSetLayout(bindings);
-        VK_CHECK(vkCreateDescriptorSetLayout(_renderer->_device, &createDescriptorSetLayout, nullptr, &_textureSetLayout));
+        VK_CHECK(vkCreateDescriptorSetLayout(_renderer->_device, &createDescriptorSetLayout, nullptr,
+                                             &_textureSetLayout));
+
+        VkDescriptorSetAllocateInfo allocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+        allocateInfo.descriptorPool = _renderer->_descriptorPool;
+        allocateInfo.descriptorSetCount = 1;
+        allocateInfo.pSetLayouts = &_textureSetLayout;
+        VK_CHECK(vkAllocateDescriptorSets(_renderer->_device, &allocateInfo, &_texturesDescriptorSet));
+
+        for (size_t i = 0; i < _textures.size(); i++) {
+            auto texture = _textures[i];
+            dynamic_cast<VulkanTexture *>(texture.get())->WriteToDescriptorSet(_texturesDescriptorSet, i);
+        }
     }
 
 

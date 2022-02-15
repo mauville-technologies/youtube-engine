@@ -20,64 +20,30 @@ namespace OZZ {
     }
 
 
-    VkDescriptorSet VulkanTexture::GetDescriptorSet(VkDescriptorSetLayout *descriptorSetLayout) {
-        if (!_descriptorSet) {
-            if (!_image) {
-                // Give it default data if no data was explicitely given yet
-                UploadData(ImageData(1,1, glm::vec3{1.f, 0.f, 1.f}));
-            }
-
-            VkFilter filters = VK_FILTER_NEAREST;
-            VkSamplerAddressMode samplerAddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-            VkSamplerCreateInfo samplerCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-                .magFilter = filters,
-                .minFilter = filters,
-                .addressModeU = samplerAddressMode,
-                .addressModeV = samplerAddressMode,
-                .addressModeW = samplerAddressMode
-            };
-
-            // Create the sampler
-            vkCreateSampler(_renderer->_device, &samplerCreateInfo, nullptr, &_sampler);
-
-            VkDescriptorSetAllocateInfo allocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-            allocateInfo.descriptorPool = _renderer->_descriptorPool;
-            allocateInfo.descriptorSetCount = 1;
-            allocateInfo.pSetLayouts = descriptorSetLayout;
-            VK_CHECK(vkAllocateDescriptorSets(_renderer->_device, &allocateInfo, &_descriptorSet));
-
-            if (_image) {
-                VkDescriptorImageInfo imageBufferInfo {
-                    .sampler = _sampler,
-                    .imageView = _imageView,
-                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                };
-
-                VkWriteDescriptorSet descriptorSetWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-                descriptorSetWrite.dstSet = _descriptorSet;
-                descriptorSetWrite.dstBinding = 0;
-                descriptorSetWrite.dstArrayElement = 0;
-                descriptorSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                descriptorSetWrite.descriptorCount = 1;
-                descriptorSetWrite.pImageInfo = &imageBufferInfo;
-
-                vkUpdateDescriptorSets(_renderer->_device, 1, &descriptorSetWrite, 0, nullptr);
-            }
+    void VulkanTexture::WriteToDescriptorSet(VkDescriptorSet descriptorSet, int dstBinding) {
+        if (!_image) {
+            // Give it default data if no data was explicitely given yet
+            UploadData(ImageData(1,1, {1.f, 0.f, 1.f, 1.f}));
         }
 
-        return _descriptorSet;
+        VkDescriptorImageInfo imageBufferInfo {
+                .sampler = _sampler,
+                .imageView = _imageView,
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        };
+
+        VkWriteDescriptorSet descriptorSetWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        descriptorSetWrite.dstSet = descriptorSet;
+        descriptorSetWrite.dstBinding = dstBinding;
+        descriptorSetWrite.dstArrayElement = 0;
+        descriptorSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorSetWrite.descriptorCount = 1;
+        descriptorSetWrite.pImageInfo = &imageBufferInfo;
+
+        vkUpdateDescriptorSets(_renderer->_device, 1, &descriptorSetWrite, 0, nullptr);
     }
 
-    void VulkanTexture::ResetDescriptorSet() {
-        _descriptorSet = VK_NULL_HANDLE;
-
-        if (_sampler) {
-            vkDestroySampler(_renderer->_device, _sampler, nullptr);
-            _sampler = VK_NULL_HANDLE;
-        }
-    }
+    void VulkanTexture::ResetDescriptorSet() {}
 
     void VulkanTexture::Bind() {
 
@@ -93,8 +59,23 @@ namespace OZZ {
                 .depth = 1
         };
         if (width != _width || height != _height) {
-            // if size has changed, re-create the texture with appropriate size
+            // TODO: Clean up old data + trigger a shader rebuild
+            VkFilter filters = VK_FILTER_NEAREST;
+            VkSamplerAddressMode samplerAddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
+            VkSamplerCreateInfo samplerCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+                    .magFilter = filters,
+                    .minFilter = filters,
+                    .addressModeU = samplerAddressMode,
+                    .addressModeV = samplerAddressMode,
+                    .addressModeW = samplerAddressMode
+            };
+
+            // Create the sampler
+            vkCreateSampler(_renderer->_device, &samplerCreateInfo, nullptr, &_sampler);
+
+            // if size has changed, re-create the texture with appropriate size
             VkFormat format = ColorTypeToVulkanFormatType(data.GetColorType());
             VkImageCreateInfo img_info {
                     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -216,4 +197,5 @@ namespace OZZ {
     int *VulkanTexture::GetHandle() const {
         return nullptr;
     }
+
 }

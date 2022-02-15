@@ -33,7 +33,9 @@ namespace OZZ {
          * PIPELINES
          */
         VkDescriptorSetLayout _descriptorSetLayout { VK_NULL_HANDLE };
+
         VkDescriptorSetLayout _textureSetLayout { VK_NULL_HANDLE };
+        VkDescriptorSet _texturesDescriptorSet { VK_NULL_HANDLE };
 
         VkPipelineLayout _pipelineLayout{ VK_NULL_HANDLE };
         VkPipeline _pipeline { VK_NULL_HANDLE };
