@@ -30,59 +30,10 @@ namespace OZZ {
         createDefaultRenderPass();
         createFramebuffers();
         createSyncStructures();
-        _triangleShader = CreateShader();
-        _triangleShader->Load("basic.vert.spv", "basic.frag.spv");
-        _triangleShader2 = CreateShader();
-        _triangleShader2->Load("basic.vert.spv", "basic.frag.spv");
-        createPipelines();
-
     }
 
     void VulkanRenderer::Shutdown() {
-        vkDeviceWaitIdle(_device);
-
-        if (_triangleShader) {
-            _triangleShader.reset();
-            _triangleShader = nullptr;
-        }
-        if (_triangleShader2) {
-            _triangleShader2.reset();
-            _triangleShader2 = nullptr;
-        }
-
-        if (_triangleBuffer) {
-            _triangleBuffer.reset();
-            _triangleBuffer = nullptr;
-        }
-
-        if (_triangleIndexBuffer) {
-            _triangleIndexBuffer.reset();
-            _triangleIndexBuffer = nullptr;
-        }
-
-        if (_triangle2Buffer) {
-            _triangle2Buffer.reset();
-            _triangle2Buffer = nullptr;
-        }
-
-        if (_triangle2IndexBuffer) {
-            _triangle2IndexBuffer.reset();
-            _triangle2IndexBuffer = nullptr;
-        }
-
-        if (_triangleUniformBuffer) {
-            _triangleUniformBuffer.reset();
-            _triangleUniformBuffer = nullptr;
-        }
-
-        if (_triangleTexture1) {
-            _triangleTexture1.reset();
-            _triangleTexture1 = nullptr;
-        }
-        if (_triangleTexture2) {
-            _triangleTexture2.reset();
-            _triangleTexture2 = nullptr;
-        }
+        WaitForIdle();
 
         cleanupSwapchain();
         vkDestroySwapchainKHR(_device, _swapchain, nullptr);
@@ -97,22 +48,18 @@ namespace OZZ {
             vkDestroyCommandPool(_device, frame.CommandPool, nullptr);
         }
 
-
-
         vkDestroyDevice(_device, nullptr);
         vkDestroySurfaceKHR(_instance, _surface, nullptr);
         vkb::destroy_debug_utils_messenger(_instance, _debug_messenger);
         vkDestroyInstance(_instance, nullptr);
     }
 
-    void VulkanRenderer::RenderFrame() {
-
+    void VulkanRenderer::BeginFrame() {
         VK_CHECK(vkWaitForFences(_device, 1, &getCurrentFrame().RenderFence, true, 1000000000)); // 1
         VK_CHECK(vkResetFences(_device, 1, &getCurrentFrame().RenderFence));                     // 0
 
-        uint32_t swapchainImageIndex;
         VkResult result = vkAcquireNextImageKHR(_device, _swapchain, 1000000000, getCurrentFrame().PresentSemaphore,
-                                                VK_NULL_HANDLE, &swapchainImageIndex);
+                                                VK_NULL_HANDLE, &getCurrentFrame().SwapchainImageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             recreateSwapchain();
@@ -144,42 +91,16 @@ namespace OZZ {
                 .extent = _windowExtent
         };
 
-        renderPassBeginInfo.framebuffer = _framebuffers[swapchainImageIndex];
+        renderPassBeginInfo.framebuffer = _framebuffers[getCurrentFrame().SwapchainImageIndex];
         // connect clear values
         renderPassBeginInfo.clearValueCount = 1;
         renderPassBeginInfo.pClearValues = &clearValue;
 
-        static auto startTime = std::chrono::high_resolution_clock::now();
-
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-        UniformBufferObject uboObject{
-                glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-                glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-                glm::perspective(glm::radians(45.0f), _windowExtent.width / (float) _windowExtent.height, 0.1f, 10.0f)
-        };
-
-        uboObject.proj[1][1] *= -1;
-
-        _triangleUniformBuffer->UploadData(uboObject);
-
         vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    }
 
-        // DRAW CALLS
-        _triangleShader->Bind(reinterpret_cast<uint64_t>(cmd));
-
-        _triangle2Buffer->Bind(reinterpret_cast<uint64_t>(cmd));
-        _triangle2IndexBuffer->Bind(reinterpret_cast<uint64_t>(cmd));
-
-        vkCmdDrawIndexed(cmd, _triangle2IndexBuffer->GetCount(), 1, 0, 0, 0);
-
-        _triangleShader2->Bind(reinterpret_cast<uint64_t>(cmd));
-
-        _triangleBuffer->Bind(reinterpret_cast<uint64_t>(cmd));
-        _triangleIndexBuffer->Bind(reinterpret_cast<uint64_t>(cmd));
-        vkCmdDrawIndexed(cmd, _triangleIndexBuffer->GetCount(), 1, 0, 0, 0);
-
+    void VulkanRenderer::EndFrame() {
+        auto cmd = getCurrentFrame().MainCommandBuffer;
         vkCmdEndRenderPass(cmd);
         VK_CHECK(vkEndCommandBuffer(cmd));
 
@@ -206,9 +127,9 @@ namespace OZZ {
         presentInfoKhr.waitSemaphoreCount = 1;
         presentInfoKhr.pWaitSemaphores = &getCurrentFrame().RenderSemaphore;
 
-        presentInfoKhr.pImageIndices = &swapchainImageIndex;
+        presentInfoKhr.pImageIndices = &getCurrentFrame().SwapchainImageIndex;
 
-        result = vkQueuePresentKHR(_graphicsQueue, &presentInfoKhr);
+        auto result = vkQueuePresentKHR(_graphicsQueue, &presentInfoKhr);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || _recreateFrameBuffer) {
             _recreateFrameBuffer = false;
@@ -221,6 +142,16 @@ namespace OZZ {
         erase_if(_shaders, [](auto shader) { return shader.expired(); });
 
         _frameNumber++;
+    }
+
+
+    void VulkanRenderer::DrawIndexBuffer(IndexBuffer *buffer) {
+        vkCmdDrawIndexed(getCurrentFrame().MainCommandBuffer, buffer->GetCount(), 1, 0, 0, 0);
+    }
+
+
+    void VulkanRenderer::WaitForIdle() {
+        vkDeviceWaitIdle(_device);
     }
 
     std::shared_ptr<Shader> VulkanRenderer::CreateShader() {
@@ -382,7 +313,7 @@ namespace OZZ {
 
         vkb::Swapchain vkbSwapchain = swapchainBuilder
                 .use_default_format_selection()
-                .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)     // Hard VSync
+                .set_desired_present_mode(VK_PRESENT_MODE_FIFO_RELAXED_KHR)     // Hard VSync
                 .set_desired_extent(width, height)
                 .set_old_swapchain(oldSwapchain)
                 .build()
@@ -489,99 +420,7 @@ namespace OZZ {
         }
     }
 
-    void VulkanRenderer::createPipelines() {
-
-        _triangleBuffer = CreateVertexBuffer();
-        _triangleBuffer->UploadData({
-                                            Vertex{
-                                                    .position = {0.75f, 0.75f, 0.f},
-                                                    .color = {1.f, 0.f, 0.f, 1.f},
-                                                    .uv = {1.f, 1.f}
-                                            },
-                                            Vertex{
-                                                    .position = {-0.75f, 0.75f, 0.f},
-                                                    .color = {0.f, 1.f, 0.f, 1.f},
-                                                    .uv = {0.f, 1.f}
-
-                                            },
-                                            Vertex{
-                                                    .position = {-0.75f, -0.75f, 0.f},
-                                                    .color = {0.f, 0.f, 1.f, 1.f},
-                                                    .uv = {0.f, 0.f}
-
-                                            },
-                                            Vertex{
-                                                    .position = {0.75f, -0.75f, 0.f},
-                                                    .color = {0.f, 0.f, 1.f, 1.f},
-                                                    .uv = {1.f, 0.f}
-                                            },
-                                    });
-
-        _triangleIndexBuffer = CreateIndexBuffer();
-        _triangleIndexBuffer->UploadData({0, 1, 2, 2, 3, 0});
-
-        _triangle2Buffer = CreateVertexBuffer();
-        _triangle2Buffer->UploadData({
-                                             Vertex{
-                                                     .position = {1.f, 1.f, 0.f},
-                                                     .color = {1.f, 1.f, 1.f, 1.f},
-                                                     .uv = {1.f, 0.f}
-                                             },
-                                             Vertex{
-                                                     .position = {-1.f, 1.f, 0.f},
-                                                     .color = {1.f, 1.f, 1.f, 1.f},
-                                                     .uv = { 0.f, 0.f}
-                                             },
-                                             Vertex{
-                                                     .position = {0.f, -1.f, 0.f},
-                                                     .color = {1.f, 1.f, 1.f, 1.f},
-                                                     .uv = {0.5, 1.f}
-                                             }
-                                     });
-
-        _triangle2IndexBuffer = CreateIndexBuffer();
-        _triangle2IndexBuffer->UploadData({0, 1, 2});
-
-        _triangleUniformBuffer = CreateUniformBuffer();
-
-        UniformBufferObject uboObject{
-                glm::rotate(glm::mat4(1.0f), 1.f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-                glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-                glm::perspective(glm::radians(45.0f), _windowExtent.width / (float) _windowExtent.height, 0.1f, 10.0f)
-        };
-
-        uboObject.proj[1][1] *= -1;
-
-        _triangleUniformBuffer->UploadData(uboObject);
-
-        _triangleShader->AddUniformBuffer(_triangleUniformBuffer);
-
-        auto buffer = CreateUniformBuffer();
-
-        UniformBufferObject uboObject2{
-                glm::rotate(glm::mat4(1.0f), 1.f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-                glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-                glm::perspective(glm::radians(45.0f), _windowExtent.width / (float) _windowExtent.height, 0.1f, 10.0f)
-        };
-
-        uboObject2.proj[1][1] *= -1;
-
-        buffer->UploadData(uboObject2);
-        _triangleShader2->AddUniformBuffer(buffer);
-
-        _triangleTexture1 = CreateTexture();
-        _triangleTexture1->UploadData(ImageData("textures/bricks.png", true));
-
-        _triangleTexture2 = CreateTexture();
-        _triangleTexture2->UploadData(ImageData("textures/texture.jpg", true));
-
-        _triangleShader->AddTexture(_triangleTexture1);
-        _triangleShader2->AddTexture(_triangleTexture2);
-    }
-
     FrameData &VulkanRenderer::getCurrentFrame() {
         return _frames[_frameNumber % MAX_FRAMES_IN_FLIGHT];
     }
-
-
 }

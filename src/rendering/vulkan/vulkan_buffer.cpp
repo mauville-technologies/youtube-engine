@@ -133,7 +133,7 @@ namespace OZZ {
     void VulkanVertexBuffer::Bind(uint64_t commandHandle) {
         if (_buffer) {
             VkDeviceSize offset = 0;
-            vkCmdBindVertexBuffers(VkCommandBuffer(commandHandle), 0, 1, &_buffer->Buffer, &offset);
+            vkCmdBindVertexBuffers(_renderer->getCurrentFrame().MainCommandBuffer, 0, 1, &_buffer->Buffer, &offset);
         }
     }
 
@@ -154,7 +154,7 @@ namespace OZZ {
     void VulkanIndexBuffer::Bind(uint64_t commandHandle) {
         if (_buffer) {
             VkDeviceSize offset = 0;
-            vkCmdBindIndexBuffer(VkCommandBuffer(commandHandle), _buffer->Buffer, offset, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(_renderer->getCurrentFrame().MainCommandBuffer, _buffer->Buffer, offset, VK_INDEX_TYPE_UINT32);
         }
     }
 

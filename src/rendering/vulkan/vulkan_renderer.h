@@ -20,6 +20,7 @@ namespace OZZ {
         VkCommandBuffer MainCommandBuffer { VK_NULL_HANDLE };
 
         VkFence RenderFence { VK_NULL_HANDLE };
+        uint32_t SwapchainImageIndex { 0 };
     };
 
     class VulkanRenderer : public Renderer {
@@ -31,20 +32,21 @@ namespace OZZ {
     friend class VulkanShader;
     friend class VulkanTexture;
 
-        /*
-         * FUNCTIONS
-         */
     public:
         void Init(RendererSettings settings) override;
         void Shutdown() override;
-        void RenderFrame() override;
+        void BeginFrame() override;
+        void EndFrame() override;
+
+        void DrawIndexBuffer(IndexBuffer* buffer) override;
+
+        void WaitForIdle() override;
 
         std::shared_ptr<Shader> CreateShader() override;
         std::shared_ptr<VertexBuffer> CreateVertexBuffer() override;
         std::shared_ptr<IndexBuffer> CreateIndexBuffer() override;
         std::shared_ptr<UniformBuffer> CreateUniformBuffer() override;
         std::shared_ptr<Texture> CreateTexture() override;
-
 
     private:
         void initCore();
@@ -59,13 +61,9 @@ namespace OZZ {
         void createDefaultRenderPass();
         void createFramebuffers();
         void createSyncStructures();
-        void createPipelines();
 
         FrameData& getCurrentFrame();
 
-        /*
-         * MEMBERS
-         */
     private:
 
         //TODO: TEMPORARY FRAME NUMBER
@@ -123,21 +121,6 @@ namespace OZZ {
          * References to the shaders created in the system to be rebuilt when swapchain is recreated
          */
         std::vector<std::weak_ptr<Shader>> _shaders {};
-
-        /*
-         * NON-RENDERING Objects
-         */
-        std::shared_ptr<Shader> _triangleShader { nullptr };
-        std::shared_ptr<Shader> _triangleShader2 { nullptr };
-
-        std::shared_ptr<VertexBuffer> _triangleBuffer { nullptr };
-        std::shared_ptr<IndexBuffer> _triangleIndexBuffer { nullptr };
-        std::shared_ptr<UniformBuffer> _triangleUniformBuffer { nullptr };
-
-        std::shared_ptr<VertexBuffer> _triangle2Buffer { nullptr };
-        std::shared_ptr<IndexBuffer> _triangle2IndexBuffer { nullptr };
-        std::shared_ptr<Texture> _triangleTexture1 { nullptr };
-        std::shared_ptr<Texture> _triangleTexture2 { nullptr };
     };
 }
 

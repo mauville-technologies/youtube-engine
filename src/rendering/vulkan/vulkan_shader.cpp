@@ -30,20 +30,20 @@ namespace OZZ {
         for (auto& uniform : _uniformBuffers) {
             auto descriptorSet = dynamic_cast<VulkanUniformBuffer*>(uniform.get())->GetDescriptorSet(&_descriptorSetLayout);
 
-            vkCmdBindDescriptorSets((VkCommandBuffer) commandHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
+            vkCmdBindDescriptorSets((VkCommandBuffer) _renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
                                     0, 1, &descriptorSet, 0, nullptr);
         }
 
         for (auto& texture : _textures) {
             auto descriptorSet = dynamic_cast<VulkanTexture*>(texture.get())->GetDescriptorSet(&_textureSetLayout);
 
-            vkCmdBindDescriptorSets((VkCommandBuffer) commandHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
+            vkCmdBindDescriptorSets(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
                                     1, 1, &descriptorSet, 0, nullptr);
         }
 
 
 
-        vkCmdBindPipeline(VkCommandBuffer(commandHandle), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
+        vkCmdBindPipeline(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
     }
 
 

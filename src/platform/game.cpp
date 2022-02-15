@@ -37,12 +37,17 @@ namespace OZZ {
 
             // Update game state
             Update(0.0f);
-
             // Update physics
 
+            ServiceLocator::GetRenderer()->BeginFrame();
+
+            Render();
             // Draw
-            ServiceLocator::GetRenderer()->RenderFrame();
+            ServiceLocator::GetRenderer()->EndFrame();
         }
+
+        ServiceLocator::GetRenderer()->WaitForIdle();
+        OnExit();
     }
 
     void Game::initializeServices() {
