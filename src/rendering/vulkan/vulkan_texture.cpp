@@ -45,9 +45,7 @@ namespace OZZ {
 
     void VulkanTexture::ResetDescriptorSet() {}
 
-    void VulkanTexture::Bind() {
-
-    }
+    void VulkanTexture::Bind() {}
 
     void VulkanTexture::BindSamplerSettings() {}
 
@@ -187,7 +185,6 @@ namespace OZZ {
         vkQueueWaitIdle(_renderer->_graphicsQueue);
 
         vkFreeCommandBuffers(_renderer->_device, _renderer->getCurrentFrame().CommandPool, 1, &commandBuffer);
-
     }
 
     std::pair<uint32_t, uint32_t> VulkanTexture::GetSize() const {

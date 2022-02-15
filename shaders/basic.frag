@@ -9,6 +9,6 @@ layout (set = 1, binding = 0) uniform sampler2D tex1;
 layout (set = 1, binding = 1) uniform sampler2D tex2;
 
 void main() {
-    vec3 color = mix(texture(tex1, texCoord), texture(tex2, texCoord), 0.5f).xyz;
+    vec3 color = mix(texture(tex1, texCoord), texture(tex2, texCoord), 0.25f).xyz;
     outFragColour = vec4(color, 1.0f);
 }

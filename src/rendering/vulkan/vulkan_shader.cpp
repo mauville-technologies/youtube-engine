@@ -22,10 +22,11 @@ namespace OZZ {
 
     void VulkanShader::Rebuild() {
         cleanPipeline();
-        Load(std::move(_vertexShader), std::move(_fragmentShader));
+        if (!_vertexShader.empty() && !_fragmentShader.empty())
+            Load(std::move(_vertexShader), std::move(_fragmentShader));
     }
 
-    void VulkanShader::Bind(uint64_t commandHandle) {
+    void VulkanShader::Bind() {
         // Bind Uniforms
         for (auto& uniform : _uniformBuffers) {
             auto descriptorSet = dynamic_cast<VulkanUniformBuffer*>(uniform.get())->GetDescriptorSet(&_descriptorSetLayout);
@@ -33,8 +34,6 @@ namespace OZZ {
             vkCmdBindDescriptorSets((VkCommandBuffer) _renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
                                     0, 1, &descriptorSet, 0, nullptr);
         }
-
-
 
         vkCmdBindDescriptorSets(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
                                 1, 1, &_texturesDescriptorSet, 0, nullptr);
@@ -163,7 +162,6 @@ namespace OZZ {
         for (auto& texture: _textures) {
             dynamic_cast<VulkanTexture*>(texture.get())->ResetDescriptorSet();
         }
-
     }
 
     void VulkanShader::buildDescriptorSets() {

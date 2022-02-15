@@ -130,7 +130,7 @@ namespace OZZ {
                                  stagingBuffer.get(), _buffer.get(), _bufferSize);
     }
 
-    void VulkanVertexBuffer::Bind(uint64_t commandHandle) {
+    void VulkanVertexBuffer::Bind() {
         if (_buffer) {
             VkDeviceSize offset = 0;
             vkCmdBindVertexBuffers(_renderer->getCurrentFrame().MainCommandBuffer, 0, 1, &_buffer->Buffer, &offset);
@@ -151,7 +151,7 @@ namespace OZZ {
         _buffer = nullptr;
     }
 
-    void VulkanIndexBuffer::Bind(uint64_t commandHandle) {
+    void VulkanIndexBuffer::Bind() {
         if (_buffer) {
             VkDeviceSize offset = 0;
             vkCmdBindIndexBuffer(_renderer->getCurrentFrame().MainCommandBuffer, _buffer->Buffer, offset, VK_INDEX_TYPE_UINT32);
@@ -235,7 +235,7 @@ namespace OZZ {
         return _descriptorSet;
     }
 
-    void VulkanUniformBuffer::Bind(uint64_t commandHandle) {}
+    void VulkanUniformBuffer::Bind() {}
 
     void VulkanUniformBuffer::UploadData(const UniformBufferObject &object) {
         uint64_t newBufferSize { sizeof(object) };

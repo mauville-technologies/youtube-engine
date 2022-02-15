@@ -17,7 +17,7 @@ namespace OZZ {
 
         void Rebuild();
 
-        void Bind(uint64_t commandHandle) override;
+        void Bind() override;
         void Load(const std::string&& vertexShader, const std::string&& fragmentShader) override;
         void AddUniformBuffer(std::shared_ptr<UniformBuffer> buffer) override;
         void AddTexture(std::shared_ptr<Texture> texture) override;
