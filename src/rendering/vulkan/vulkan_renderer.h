@@ -97,7 +97,7 @@ namespace OZZ {
         VkQueue _graphicsQueue;
         uint32_t _graphicsQueueFamily;
 
-        static constexpr uint32_t POOL_SIZE_COUNT { 1 };
+        static constexpr uint32_t POOL_SIZE_COUNT { 2 };
         static constexpr VkDescriptorPoolSize POOL_SIZES[] {
                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
                 { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10 }

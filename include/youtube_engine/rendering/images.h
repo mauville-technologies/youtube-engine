@@ -7,6 +7,7 @@
 #include <youtube_engine/rendering/types.h>
 
 #include <tuple>
+#include <vector>
 #include <glm/glm.hpp>
 
 namespace OZZ {
