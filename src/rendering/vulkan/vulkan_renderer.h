@@ -7,6 +7,7 @@
 
 #include <youtube_engine/rendering/renderer.h>
 #include <vector>
+#include <array>
 #include "vulkan_includes.h"
 
 namespace OZZ {
@@ -97,10 +98,9 @@ namespace OZZ {
         VkQueue _graphicsQueue;
         uint32_t _graphicsQueueFamily;
 
-        static constexpr uint32_t POOL_SIZE_COUNT { 2 };
-        static constexpr VkDescriptorPoolSize POOL_SIZES[] {
-                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
-                { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10 }
+        static constexpr std::array<VkDescriptorPoolSize, 2> POOL_SIZES {
+                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
+                VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10 }
         };
 
         VkDescriptorPool _descriptorPool { VK_NULL_HANDLE };
