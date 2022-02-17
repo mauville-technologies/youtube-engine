@@ -90,6 +90,12 @@ namespace OZZ {
         VkFormat _swapchainImageFormat;
         std::vector<VkImage> _swapchainImages;
         std::vector<VkImageView> _swapchainImageViews;
+
+        VkImageView _depthImageView { VK_NULL_HANDLE };
+        VkImage _depthImage { VK_NULL_HANDLE };
+        VmaAllocation _depthImageAllocation { VK_NULL_HANDLE };
+        VkFormat _depthFormat;
+
         VkExtent2D _windowExtent;
 
         /*

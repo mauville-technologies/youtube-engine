@@ -19,6 +19,7 @@ namespace OZZ {
         VkPipelineColorBlendAttachmentState _colorBlendAttachment;
         VkPipelineMultisampleStateCreateInfo _multisampling;
         VkPipelineLayout _pipelineLayout;
+        VkPipelineDepthStencilStateCreateInfo _depthStencil;
 
         VkPipeline BuildPipeline(VkDevice device, VkRenderPass pass);
     };

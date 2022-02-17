@@ -81,6 +81,12 @@ namespace OZZ {
                 .color = {0.f, flashColour, flashColour, 1.f}
         };
 
+        VkClearValue depthClear {
+            .depthStencil = {
+                    .depth = 1.f
+            }
+        };
+
         VkRenderPassBeginInfo renderPassBeginInfo{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
         renderPassBeginInfo.renderPass = _renderPass;
         renderPassBeginInfo.renderArea = {
@@ -91,10 +97,11 @@ namespace OZZ {
                 .extent = _windowExtent
         };
 
+        VkClearValue clearValues[] = { clearValue, depthClear };
         renderPassBeginInfo.framebuffer = _framebuffers[getCurrentFrame().SwapchainImageIndex];
         // connect clear values
-        renderPassBeginInfo.clearValueCount = 1;
-        renderPassBeginInfo.pClearValues = &clearValue;
+        renderPassBeginInfo.clearValueCount = 2;
+        renderPassBeginInfo.pClearValues = clearValues;
 
         vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     }
@@ -276,6 +283,9 @@ namespace OZZ {
             vkDestroyImageView(_device, imageView, nullptr);
         }
 
+        vkDestroyImageView(_device, _depthImageView, nullptr);
+        vmaDestroyImage(_allocator, _depthImage, _depthImageAllocation);
+
         vkDestroyDescriptorPool(_device, _descriptorPool, nullptr);
     }
 
@@ -328,6 +338,51 @@ namespace OZZ {
         if (oldSwapchain) {
             vkDestroySwapchainKHR(_device, oldSwapchain, nullptr);
         }
+
+        // Create depth image
+        VkExtent3D depthImageExtent {
+            .width = _windowExtent.width,
+            .height = _windowExtent.height,
+            .depth = 1
+        };
+
+        _depthFormat = VK_FORMAT_D32_SFLOAT;
+
+        VkImageCreateInfo depthCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .imageType = VK_IMAGE_TYPE_2D,
+            .format = _depthFormat,
+            .extent = depthImageExtent,
+            .mipLevels = 1,
+            .arrayLayers = 1,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+        };
+
+        VmaAllocationCreateInfo depthImageCreateInfo {
+            .usage = VMA_MEMORY_USAGE_GPU_ONLY,
+            .requiredFlags = VkMemoryPropertyFlags {VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}
+        };
+
+        vmaCreateImage(_allocator, &depthCreateInfo, &depthImageCreateInfo,
+                       &_depthImage, &_depthImageAllocation, nullptr);
+
+        VkImageViewCreateInfo depthImageViewCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image = _depthImage,
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = _depthFormat,
+            .subresourceRange = {
+                    .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+            }
+        };
+
+        VK_CHECK(vkCreateImageView(_device, &depthImageViewCreateInfo, nullptr, &_depthImageView));
     }
 
     void VulkanRenderer::createCommands() {
@@ -374,17 +429,57 @@ namespace OZZ {
                 .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         };
 
+        VkAttachmentDescription depthAttachment{
+                .flags = 0,
+                .format = _depthFormat,
+                .samples = VK_SAMPLE_COUNT_1_BIT,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        };
+
+        VkAttachmentReference depthAttachmentRef{
+                .attachment = 1,
+                .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        };
+
         VkSubpassDescription subpass{
                 .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
                 .colorAttachmentCount = 1,
-                .pColorAttachments = &colorAttachmentRef
+                .pColorAttachments = &colorAttachmentRef,
+                .pDepthStencilAttachment = &depthAttachmentRef
         };
 
+        VkSubpassDependency dependency = {};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        //dependency from outside to the subpass, making this subpass dependent on the previous renderpasses
+        VkSubpassDependency depth_dependency = {};
+        depth_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        depth_dependency.dstSubpass = 0;
+        depth_dependency.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        depth_dependency.srcAccessMask = 0;
+        depth_dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        depth_dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        VkSubpassDependency dependencies[] { dependency, depth_dependency };
+
+        VkAttachmentDescription attachments[] {colorAttachment, depthAttachment};
         VkRenderPassCreateInfo renderPassCreateInfo{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-        renderPassCreateInfo.attachmentCount = 1;
-        renderPassCreateInfo.pAttachments = &colorAttachment;
+        renderPassCreateInfo.attachmentCount = 2;
+        renderPassCreateInfo.pAttachments = attachments;
         renderPassCreateInfo.subpassCount = 1;
         renderPassCreateInfo.pSubpasses = &subpass;
+        renderPassCreateInfo.dependencyCount = 2;
+        renderPassCreateInfo.pDependencies = dependencies;
 
         VK_CHECK(vkCreateRenderPass(_device, &renderPassCreateInfo, nullptr, &_renderPass));
     }
@@ -392,7 +487,7 @@ namespace OZZ {
     void VulkanRenderer::createFramebuffers() {
         VkFramebufferCreateInfo framebufferCreateInfo{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
         framebufferCreateInfo.renderPass = _renderPass;
-        framebufferCreateInfo.attachmentCount = 1;
+        framebufferCreateInfo.attachmentCount = 2;
         framebufferCreateInfo.width = _windowExtent.width;
         framebufferCreateInfo.height = _windowExtent.height;
         framebufferCreateInfo.layers = 1;
@@ -400,8 +495,13 @@ namespace OZZ {
         const auto swapchainImageCount = static_cast<uint32_t>(_swapchainImages.size());
         _framebuffers.resize(swapchainImageCount);
 
+
         for (uint32_t i = 0; i < swapchainImageCount; i++) {
-            framebufferCreateInfo.pAttachments = &_swapchainImageViews[i];
+            VkImageView attachments[2];
+            attachments[0] = _swapchainImageViews[i];
+            attachments[1] = _depthImageView;
+
+            framebufferCreateInfo.pAttachments = attachments;
             VK_CHECK(vkCreateFramebuffer(_device, &framebufferCreateInfo, nullptr, &_framebuffers[i]));
         }
     }

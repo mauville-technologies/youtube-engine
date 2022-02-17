@@ -129,6 +129,7 @@ namespace OZZ {
         pipelineBuilder._multisampling = VulkanInitializers::PipelineMultisampleStateCreateInfo();
         pipelineBuilder._colorBlendAttachment = VulkanInitializers::PipelineColorBlendAttachmentState();
         pipelineBuilder._pipelineLayout = _pipelineLayout;
+        pipelineBuilder._depthStencil = VulkanInitializers::DepthStencilCreateInfo(true, true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
         _pipeline = pipelineBuilder.BuildPipeline(_renderer->_device, _renderer->_renderPass);
 

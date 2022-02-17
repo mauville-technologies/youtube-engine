@@ -32,6 +32,7 @@ namespace OZZ {
         pipelineCreateInfo.renderPass = pass;
         pipelineCreateInfo.subpass = 0;
         pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+        pipelineCreateInfo.pDepthStencilState = &_depthStencil;
 
         VkPipeline newPipeline;
 

@@ -31,6 +31,7 @@ namespace OZZ {
         uint32_t _width { 0 };
         uint32_t _height { 0 };
 
+
         VkImage _image { VK_NULL_HANDLE };
         VmaAllocation _allocation { VK_NULL_HANDLE };
         VkImageView _imageView { VK_NULL_HANDLE };

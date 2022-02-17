@@ -21,7 +21,7 @@ namespace OZZ {
         static VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo(VkPolygonMode polygonMode);
         static VkPipelineMultisampleStateCreateInfo PipelineMultisampleStateCreateInfo();
         static VkPipelineColorBlendAttachmentState PipelineColorBlendAttachmentState();
-
+        static VkPipelineDepthStencilStateCreateInfo DepthStencilCreateInfo(bool bDepthTest, bool bDepthWrite, VkCompareOp compareOp);
         static VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo();
     };
 }
