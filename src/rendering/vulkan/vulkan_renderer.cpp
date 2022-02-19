@@ -9,7 +9,6 @@
 #include <cmath>
 #include <youtube_engine/service_locator.h>
 #include "vulkan_initializers.h"
-#include "vulkan_types.h"
 #include "vulkan_utilities.h"
 #include "vulkan_pipeline_builder.h"
 
@@ -138,27 +137,57 @@ namespace OZZ {
         // Initialize the instance
         vkb::InstanceBuilder builder;
 
-        auto builderInstance = builder.set_app_name(_rendererSettings.ApplicationName.c_str())
+        std::vector<std::string> instanceExtensions {};
+
+#if __APPLE__
+    #include <TargetConditionals.h>
+    #if TARGET_OS_MAC
+        instanceExtensions.emplace_back("VK_MVK_macos_surface");
+    #endif
+#endif
+
+        builder.set_app_name(_rendererSettings.ApplicationName.c_str())
                 .request_validation_layers(true)
                 .require_api_version(1, 1, 0)
                 .use_default_debug_messenger()
                 .build();
 
+
+        for (auto& instanceExtension : instanceExtensions) {
+            builder.enable_extension(instanceExtension.c_str());
+        }
+
+        auto builderInstance = builder.build();
         vkb::Instance vkb_inst = builderInstance.value();
 
         _instance = vkb_inst.instance;
         _debug_messenger = vkb_inst.debug_messenger;
 
         // request vulkan surface
-        std::unordered_map<SurfaceArgs, std::any> surfaceArgs {
-                {SurfaceArgs::INSTANCE, _instance},
-                {SurfaceArgs ::OUT_SURFACE, &_surface}
+        std::unordered_map<SurfaceArgs, int*> surfaceArgs {
+                {SurfaceArgs::INSTANCE, reinterpret_cast<int*>(_instance)},
+                {SurfaceArgs ::OUT_SURFACE, reinterpret_cast<int*>(&_surface)}
         };
 
         ServiceLocator::GetWindow()->RequestDrawSurface(surfaceArgs);
 
+
+        std::vector<std::string> deviceExtensions {};
+
+#if __APPLE__
+    #include <TargetConditionals.h>
+    #if TARGET_OS_MAC
+        deviceExtensions.emplace_back("VK_KHR_portability_subset");
+    #endif
+#endif
+
         // Select physical device
         vkb::PhysicalDeviceSelector selector {vkb_inst};
+
+        for (auto& deviceExtension : deviceExtensions) {
+            selector.add_required_extension(deviceExtension.c_str());
+        }
+
         vkb::PhysicalDevice vkbPhysicalDevice{
                 selector
                     .set_minimum_version(1, 1)

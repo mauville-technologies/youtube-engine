@@ -23,6 +23,6 @@ namespace OZZ {
         virtual bool Update() = 0;
 
         virtual std::pair<int, int> GetWindowExtents() = 0;
-        virtual void RequestDrawSurface(std::unordered_map<SurfaceArgs, std::any>) = 0;
+        virtual void RequestDrawSurface(std::unordered_map<SurfaceArgs, int*>) = 0;
     };
 }

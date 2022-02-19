@@ -117,24 +117,20 @@ namespace OZZ {
         return { width, height };
     }
 
-    void MultiPlatformWindow::RequestDrawSurface(std::unordered_map<SurfaceArgs, std::any> args) {
+    void MultiPlatformWindow::RequestDrawSurface(std::unordered_map<SurfaceArgs, int*> args) {
 
         // Extract what we need
-        try {
-            auto vkInstance = std::any_cast<VkInstance>(args[SurfaceArgs::INSTANCE]);
-            auto *allocationCallbacks = args[SurfaceArgs::ALLOCATORS].has_value() ?
-                    std::any_cast<VkAllocationCallbacks *>(args[SurfaceArgs::ALLOCATORS]): nullptr;
-            auto *outSurface = std::any_cast<VkSurfaceKHR *>(args[SurfaceArgs::OUT_SURFACE]);
+        auto vkInstance = reinterpret_cast<VkInstance>(args[SurfaceArgs::INSTANCE]);
+        auto *allocationCallbacks = args[SurfaceArgs::ALLOCATORS] ?
+                                    reinterpret_cast<VkAllocationCallbacks *>(args[SurfaceArgs::ALLOCATORS]): nullptr;
+        auto *outSurface = reinterpret_cast<VkSurfaceKHR *>(args[SurfaceArgs::OUT_SURFACE]);
 
-            if (vkInstance == VK_NULL_HANDLE) {
-                throw std::runtime_error("Must provide an instance!");
-            }
+        if (vkInstance == VK_NULL_HANDLE) {
+            throw std::runtime_error("Must provide an instance!");
+        }
 
-            if (glfwCreateWindowSurface(vkInstance, _window, allocationCallbacks, outSurface) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create window surface!");
-            }
-        } catch (std::bad_any_cast& e) {
-            std::cout << "Failed to cast window surface arguments: " << e.what() << std::endl;
+        if (glfwCreateWindowSurface(vkInstance, _window, allocationCallbacks, outSurface) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create window surface!");
         }
     }
 
