@@ -6,7 +6,6 @@
 #include "vulkan_renderer.h"
 
 #include <cmath>
-#include <chrono>
 #include <VkBootstrap.h>
 
 #include <youtube_engine/service_locator.h>
@@ -15,8 +14,6 @@
 #include "vulkan_shader.h"
 #include "vulkan_buffer.h"
 #include "vulkan_texture.h"
-
-#include <glm/gtc/matrix_transform.hpp>
 
 namespace OZZ {
     void VulkanRenderer::Init(RendererSettings settings) {
@@ -453,15 +450,6 @@ namespace OZZ {
                 .pDepthStencilAttachment = &depthAttachmentRef
         };
 
-        VkSubpassDependency dependency = {};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-        //dependency from outside to the subpass, making this subpass dependent on the previous renderpasses
         VkSubpassDependency depth_dependency = {};
         depth_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         depth_dependency.dstSubpass = 0;
@@ -470,7 +458,7 @@ namespace OZZ {
         depth_dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
         depth_dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-        VkSubpassDependency dependencies[] { dependency, depth_dependency };
+        VkSubpassDependency dependencies[] { depth_dependency };
 
         VkAttachmentDescription attachments[] {colorAttachment, depthAttachment};
         VkRenderPassCreateInfo renderPassCreateInfo{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
@@ -478,7 +466,7 @@ namespace OZZ {
         renderPassCreateInfo.pAttachments = attachments;
         renderPassCreateInfo.subpassCount = 1;
         renderPassCreateInfo.pSubpasses = &subpass;
-        renderPassCreateInfo.dependencyCount = 2;
+        renderPassCreateInfo.dependencyCount = 1;
         renderPassCreateInfo.pDependencies = dependencies;
 
         VK_CHECK(vkCreateRenderPass(_device, &renderPassCreateInfo, nullptr, &_renderPass));
