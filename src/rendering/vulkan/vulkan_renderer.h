@@ -11,6 +11,8 @@
 
 namespace OZZ {
     class VulkanRenderer : public Renderer {
+        friend class VulkanShader;
+
         /*
          * FUNCTIONS
          */
@@ -18,6 +20,8 @@ namespace OZZ {
         void Init(RendererSettings settings) override;
         void Shutdown() override;
         void RenderFrame() override;
+
+        std::shared_ptr<Shader> CreateShader() override;
 
     private:
         void initCore();
@@ -77,10 +81,11 @@ namespace OZZ {
         VkFence _renderFence;
 
         /*
-         * PIPELINES
+         *  TEMPORARY RUNTIME GAME OBJECTS
          */
-        VkPipelineLayout _trianglePipelineLayout;
-        VkPipeline _trianglePipeline;
+
+        std::shared_ptr<Shader> _triangleShader { nullptr };
+        std::shared_ptr<Shader> _triangleShader2 { nullptr };
     };
 }
 

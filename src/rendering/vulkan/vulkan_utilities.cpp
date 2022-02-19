@@ -6,11 +6,14 @@
 #include "vulkan_utilities.h"
 #include <fstream>
 #include <vector>
+#include <youtube_engine/platform/filesystem.h>
 
 namespace OZZ {
 
-    bool VulkanUtilities::LoadShaderModule(const string &filePath, VkDevice device, VkShaderModule &outShaderModule) {
-        std::ifstream file(filePath.c_str(), std::ios::ate | std::ios::binary);
+    bool VulkanUtilities::LoadShaderModule(const string &shaderName, VkDevice device, VkShaderModule &outShaderModule) {
+
+        auto shaderPath = FileSystem::GetShaderPath() / shaderName;
+        std::ifstream file(shaderPath, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
             // ERROR LOGGING?

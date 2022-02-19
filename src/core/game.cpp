@@ -3,11 +3,11 @@
 // Copyright (c) 2021 Mauville Technologies Incorporated. All rights reserved.
 //
 
-#include "youtube_engine/platform/game.h"
-#include <youtube_engine/service_locator.h>
-#include "multiplatform_window.h"
+#include "youtube_engine/core/game.h"
+#include "youtube_engine/service_locator.h"
+#include "platform/multiplatform_window.h"
 #include "rendering/vulkan/vulkan_renderer.h"
-#include "sdl_window.h"
+#include "platform/sdl_window.h"
 
 namespace OZZ {
     Game::Game() : Game("New Youtube Engine Game") {}

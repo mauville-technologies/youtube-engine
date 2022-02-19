@@ -15,7 +15,7 @@ find_package(Vulkan REQUIRED)
 
 file(GLOB SOURCES "src/*.cpp" "src/*/*.cpp" "src/*/*/*.cpp" "src/*/*/*/*.cpp")
 
-add_library(${PROJECT_NAME} ${SOURCES} src/platform/sdl_window.cpp src/platform/sdl_window.h)
+add_library(${PROJECT_NAME} ${SOURCES})
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC

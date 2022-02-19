@@ -10,7 +10,7 @@
 #include <youtube_engine/service_locator.h>
 
 // Keep headers
-#include <youtube_engine/platform/game.h>
+#include <youtube_engine/core/game.h>
 
 int main(int argc, char **argv) {
     // Create the game
