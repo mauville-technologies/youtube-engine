@@ -37,6 +37,11 @@ namespace OZZ {
             _triangleShader = nullptr;
         }
 
+        if (_triangleShader2) {
+            _triangleShader2.reset();
+            _triangleShader2 = nullptr;
+        }
+
         vkDestroyFence(_device, _renderFence, nullptr);
         vkDestroySemaphore(_device, _presentSemaphore, nullptr);
         vkDestroySemaphore(_device, _renderSemaphore, nullptr);
