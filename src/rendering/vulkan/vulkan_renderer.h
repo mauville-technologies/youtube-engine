@@ -8,10 +8,13 @@
 #include <youtube_engine/rendering/renderer.h>
 #include <vulkan/vulkan.h>
 #include <vector>
+#include "vulkan_memory_allocator.h"
 
 namespace OZZ {
     class VulkanRenderer : public Renderer {
         friend class VulkanShader;
+        friend class VulkanIndexBuffer;
+        friend class VulkanVertexBuffer;
 
         /*
          * FUNCTIONS
@@ -22,6 +25,8 @@ namespace OZZ {
         void RenderFrame() override;
 
         std::shared_ptr<Shader> CreateShader() override;
+        std::shared_ptr<VertexBuffer> CreateVertexBuffer() override;
+        std::shared_ptr<IndexBuffer> CreateIndexBuffer() override;
 
     private:
         void initCore();
@@ -30,7 +35,10 @@ namespace OZZ {
         void createDefaultRenderPass();
         void createFramebuffers();
         void createSyncStructures();
-        void createPipelines();
+
+        // FUNCTIONS TO BE MOVED OUT OF RENDERER
+        void setupScene();
+
 
         /*
          * MEMBERS
@@ -49,6 +57,7 @@ namespace OZZ {
         VkPhysicalDevice _physicalDevice;   // physical device
         VkDevice _device;                   // logical device
         VkSurfaceKHR _surface;
+        VmaAllocator _allocator;
 
         /*
          * SWAPCHAIN
@@ -83,9 +92,13 @@ namespace OZZ {
         /*
          *  TEMPORARY RUNTIME GAME OBJECTS
          */
-
         std::shared_ptr<Shader> _triangleShader { nullptr };
         std::shared_ptr<Shader> _triangleShader2 { nullptr };
+
+        std::shared_ptr<VertexBuffer> _triangle1VertexBuffer { nullptr };
+        std::shared_ptr<IndexBuffer> _triangle1IndexBuffer { nullptr };
+        std::shared_ptr<VertexBuffer> _triangle2VertexBuffer { nullptr };
+        std::shared_ptr<IndexBuffer> _triangle2IndexBuffer { nullptr };
     };
 }
 

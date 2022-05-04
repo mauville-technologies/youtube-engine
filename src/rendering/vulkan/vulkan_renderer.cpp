@@ -3,6 +3,7 @@
 // Copyright (c) 2021 Mauville Technologies Incorporated. All rights reserved.
 //
 
+
 #include "vulkan_renderer.h"
 
 #include <VkBootstrap.h>
@@ -12,6 +13,7 @@
 #include "vulkan_utilities.h"
 #include "vulkan_pipeline_builder.h"
 #include "vulkan_shader.h"
+#include "vulkan_buffer.h"
 
 namespace OZZ {
     void VulkanRenderer::Init(RendererSettings settings) {
@@ -23,7 +25,7 @@ namespace OZZ {
         createDefaultRenderPass();
         createFramebuffers();
         createSyncStructures();
-        createPipelines();
+        setupScene();
 
     }
 
@@ -40,6 +42,26 @@ namespace OZZ {
         if (_triangleShader2) {
             _triangleShader2.reset();
             _triangleShader2 = nullptr;
+        }
+
+        if (_triangle1IndexBuffer) {
+            _triangle1IndexBuffer.reset();
+            _triangle1IndexBuffer = nullptr;
+        }
+
+        if (_triangle1VertexBuffer) {
+            _triangle1VertexBuffer.reset();
+            _triangle1VertexBuffer = nullptr;
+        }
+
+        if (_triangle2IndexBuffer) {
+            _triangle2IndexBuffer.reset();
+            _triangle2IndexBuffer = nullptr;
+        }
+
+        if (_triangle2VertexBuffer) {
+            _triangle2VertexBuffer.reset();
+            _triangle2VertexBuffer = nullptr;
         }
 
         vkDestroyFence(_device, _renderFence, nullptr);
@@ -59,6 +81,7 @@ namespace OZZ {
             vkDestroyImageView(_device, imageView, nullptr);
         }
 
+        vmaDestroyAllocator(_allocator);
         vkDestroyDevice(_device, nullptr);
         vkDestroySurfaceKHR(_instance, _surface, nullptr);
         vkb::destroy_debug_utils_messenger(_instance, _debug_messenger);
@@ -104,17 +127,22 @@ namespace OZZ {
 
         vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+        // Triangle 1
         if (_triangleShader) {
             _triangleShader->Bind();
         }
+        _triangle1VertexBuffer->Bind();
+        _triangle1IndexBuffer->Bind();
+        vkCmdDrawIndexed(cmd, _triangle1IndexBuffer->GetCount(), 1, 0, 0, 0);
 
-        vkCmdDraw(cmd, 3, 1, 0, 0);
-
+        // Triangle 2
         if (_triangleShader2) {
             _triangleShader2->Bind();
         }
 
-        vkCmdDraw(cmd, 3, 1, 0, 0);
+        _triangle2VertexBuffer->Bind();
+        _triangle2IndexBuffer->Bind();
+        vkCmdDrawIndexed(cmd, _triangle2IndexBuffer->GetCount(), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(cmd);
         VK_CHECK(vkEndCommandBuffer(cmd));
@@ -150,6 +178,14 @@ namespace OZZ {
 
     std::shared_ptr<Shader> VulkanRenderer::CreateShader() {
         return std::make_shared<VulkanShader>(this);
+    }
+
+    std::shared_ptr<VertexBuffer> VulkanRenderer::CreateVertexBuffer() {
+        return std::make_shared<VulkanVertexBuffer>(this);
+    }
+
+    std::shared_ptr<IndexBuffer> VulkanRenderer::CreateIndexBuffer() {
+        return std::make_shared<VulkanIndexBuffer>(this);
     }
 
     /*
@@ -194,7 +230,6 @@ namespace OZZ {
 
         ServiceLocator::GetWindow()->RequestDrawSurface(surfaceArgs);
 
-
         std::vector<std::string> deviceExtensions {};
 
 #if __APPLE__
@@ -228,6 +263,13 @@ namespace OZZ {
 
         _graphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
         _graphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
+
+        VmaAllocatorCreateInfo vmaCreateInfo {};
+        vmaCreateInfo.device = _device;
+        vmaCreateInfo.physicalDevice = _physicalDevice;
+        vmaCreateInfo.instance = _instance;
+
+        vmaCreateAllocator(&vmaCreateInfo, &_allocator);
     }
 
     void VulkanRenderer::createSwapchain() {
@@ -320,12 +362,74 @@ namespace OZZ {
         VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_renderSemaphore));
     }
 
-    void VulkanRenderer::createPipelines() {
+    void VulkanRenderer::setupScene() {
         _triangleShader = CreateShader();
-        _triangleShader->Load("triangle.vert.spv", "triangle.frag.spv");
+        _triangleShader->Load("basic.vert.spv", "basic.frag.spv");
+
+        std::vector<Vertex> triangle1Vertices {
+                {
+                    .position = {1.f, 1.f, 0.f},
+                    .color = {1.f, 0.f, 0.f},
+                    .uv = {0.f, 0.f},
+                    .normal = {0.f, 0.f, 0.f}
+                },
+                {
+                    .position = {-1.f,  1.f, 0.f},
+                    .color = {0.f, 1.f, 0.f},
+                    .uv = {0.f, 0.f},
+                    .normal = {0.f, 0.f, 0.f}
+                },
+                {
+                    .position = {0.f, -1.f, 0.f},
+                    .color = {0.f, 0.f, 1.f},
+                    .uv = {0.f, 0.f},
+                    .normal = {0.f, 0.f, 0.f}
+                }
+        };
+
+        std::vector<uint32_t> triangle1Indices {
+            0, 1, 2
+        };
+
+        _triangle1VertexBuffer = CreateVertexBuffer();
+        _triangle1VertexBuffer->UploadData(triangle1Vertices);
+
+        _triangle1IndexBuffer = CreateIndexBuffer();
+        _triangle1IndexBuffer->UploadData(triangle1Indices);
 
         _triangleShader2 = CreateShader();
-        _triangleShader2->Load("triangle2.vert.spv", "triangle.frag.spv");
+        _triangleShader2->Load("basic.vert.spv", "basic.frag.spv");
+
+        std::vector<Vertex> triangle2Vertices = {
+                {
+                        .position = {0.5f, 0.5f, 0.f},
+                        .color = {0.f, 0.f, 0.f},
+                        .uv = {0.f, 0.f},
+                        .normal = {0.f, 0.f, 0.f}
+                },
+                {
+                        .position = {-0.5f,  0.5f, 0.f},
+                        .color = {0.f, 0.f, 0.f},
+                        .uv = {0.f, 0.f},
+                        .normal = {0.f, 0.f, 0.f}
+                },
+                {
+                        .position = {-0.25f, -0.75f, 0.f},
+                        .color = {0.f, 0.f, 1.f},
+                        .uv = {0.f, 0.f},
+                        .normal = {0.f, 0.f, 0.f}
+                }
+        };
+
+        std::vector<uint32_t> triangle2Indices {
+                0, 1, 2
+        };
+
+        _triangle2VertexBuffer = CreateVertexBuffer();
+        _triangle2VertexBuffer->UploadData(triangle2Vertices);
+
+        _triangle2IndexBuffer = CreateIndexBuffer();
+        _triangle2IndexBuffer->UploadData(triangle2Indices);
     }
 
 }

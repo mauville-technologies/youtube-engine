@@ -9,13 +9,17 @@ add_subdirectory(external/glfw)
 add_subdirectory(external/SDL)
 add_subdirectory(external/vk-bootstrap)
 
+add_subdirectory(external/vma)
+set_target_properties(VulkanMemoryAllocator PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES
+        $<TARGET_PROPERTY:VulkanMemoryAllocator,INTERFACE_INCLUDE_DIRECTORIES>)
 
 # library find functions
 find_package(Vulkan REQUIRED)
 
 file(GLOB SOURCES "src/*.cpp" "src/*/*.cpp" "src/*/*/*.cpp" "src/*/*/*/*.cpp")
 
-add_library(${PROJECT_NAME} ${SOURCES})
+add_library(${PROJECT_NAME} ${SOURCES} include/youtube_engine/rendering/types.h)
+
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
@@ -29,6 +33,7 @@ target_include_directories(${PROJECT_NAME}
         SDL2-static
         glfw
         vk-bootstrap
+        VulkanMemoryAllocator
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -40,6 +45,7 @@ target_link_libraries(${PROJECT_NAME}
         SDL2-static
         glfw
         vk-bootstrap
+        VulkanMemoryAllocator
 )
 
 # SHADER COMPILATION

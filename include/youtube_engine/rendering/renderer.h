@@ -6,6 +6,7 @@
 #pragma once
 #include <string>
 #include <youtube_engine/rendering/shader.h>
+#include <youtube_engine/rendering/buffer.h>
 #include <memory>
 
 namespace OZZ {
@@ -21,5 +22,7 @@ namespace OZZ {
         virtual void RenderFrame() = 0;
 
         virtual std::shared_ptr<Shader> CreateShader() = 0;
+        virtual std::shared_ptr<VertexBuffer> CreateVertexBuffer() = 0;
+        virtual std::shared_ptr<IndexBuffer> CreateIndexBuffer() = 0;
     };
 }
