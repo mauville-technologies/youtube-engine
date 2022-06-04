@@ -58,8 +58,8 @@ namespace OZZ {
         ServiceLocator::Provide(new InputManager());
 
         // Provide a window
-        ServiceLocator::Provide(new MultiPlatformWindow());
-//        ServiceLocator::Provide(new SDLWindow());
+//        ServiceLocator::Provide(new MultiPlatformWindow());
+        ServiceLocator::Provide(new SDLWindow());
         // Open the window
         ServiceLocator::GetWindow()->OpenWindow({
                                                         .title = _title,

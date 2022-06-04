@@ -5,6 +5,7 @@
 #include "vulkan_buffer.h"
 #include "vulkan_utilities.h"
 #include "vulkan_renderer.h"
+#include <cstring>
 
 namespace OZZ {
     VulkanBuffer::VulkanBuffer(VmaAllocator* allocator, uint64_t bufferSize, VkBufferUsageFlags bufferUsage, VmaMemoryUsage vmaUsage) : _allocator(allocator){
@@ -30,7 +31,7 @@ namespace OZZ {
         void* tempData;
 
         vmaMapMemory(*_allocator, Allocation, &tempData);
-        memcpy(tempData, data, bufferSize);
+        std::memcpy(tempData, data, bufferSize);
         vmaUnmapMemory(*_allocator, Allocation);
     }
 

@@ -64,5 +64,5 @@ foreach(shader ${SHADERS})
     get_filename_component(SHADER_NAME ${shader} NAME)
 
     add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-            COMMAND glslc -c ${shader} -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ASSETS_DIR_NAME}/shaders/${SHADER_NAME}.spv)
+            COMMAND ${Vulkan_GLSLC_EXECUTABLE} -c ${shader} -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ASSETS_DIR_NAME}/shaders/${SHADER_NAME}.spv)
 endforeach()

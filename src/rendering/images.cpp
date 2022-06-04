@@ -4,7 +4,7 @@
 #include <youtube_engine/rendering/images.h>
 #include <stb_image.h>
 #include <iostream>
-
+#include <cstring>
 
 namespace OZZ {
 
@@ -24,7 +24,7 @@ namespace OZZ {
         _channels = 4;
         _data.resize(_width * _height * _channels);
 
-        memcpy(_data.data(), image, _width * _height * _channels);
+        std::memcpy(_data.data(), image, _width * _height * _channels);
 
         stbi_image_free(image);
 
