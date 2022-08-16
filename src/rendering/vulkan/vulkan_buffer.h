@@ -7,6 +7,11 @@
 
 namespace OZZ {
     struct VulkanBuffer {
+    public:
+        static void CopyBuffer(VkDevice* device, VkCommandPool* commandPool, VkQueue* queue,
+                                VulkanBuffer *srcBuffer, VulkanBuffer* dstBuffer);
+
+    public:
         VulkanBuffer(VmaAllocator* allocator, VkBufferUsageFlags usageFlags, VmaMemoryUsage memoryUsage);
         ~VulkanBuffer();
 
