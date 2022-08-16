@@ -36,6 +36,10 @@ namespace OZZ {
         void createFramebuffers();
         void createSyncStructures();
 
+        void cleanupSwapchain();
+        void recreateSwapchain();
+
+        void rebuildShaders();
         // FUNCTIONS TO BE MOVED OUT OF RENDERER
         void setupScene();
 
@@ -46,6 +50,7 @@ namespace OZZ {
     private:
         //TODO: TEMPORARY FRAME NUMBER
         uint64_t _frameNumber {0};
+        bool _framebufferResized { false };
 
         RendererSettings _rendererSettings {};
 
@@ -88,6 +93,13 @@ namespace OZZ {
          */
         VkSemaphore _presentSemaphore, _renderSemaphore;
         VkFence _renderFence;
+
+
+        /**
+         * RESOURCE MANAGEMENT
+         */
+        std::vector<std::weak_ptr<Shader>> _shaders {};
+
 
         /*
          *  TEMPORARY RUNTIME GAME OBJECTS

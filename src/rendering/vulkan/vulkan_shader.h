@@ -13,15 +13,24 @@ namespace OZZ {
         ~VulkanShader() override;
 
         void Bind() override;
-
         void Load(const std::string &&vertexShader, const std::string &&fragmentShader) override;
+        void Rebuild();
 
+    private:
+
+        void cleanPipelineObjects();
     private:
         VulkanRenderer* _renderer { nullptr };
 
         // Vulkan handles
         VkPipelineLayout _pipelineLayout { VK_NULL_HANDLE };
         VkPipeline _pipeline { VK_NULL_HANDLE };
+
+        /*
+         * FILE LOCATIONS FOR REBUILDING
+         */
+        std::string _vertexShaderLoc;
+        std::string _fragmentShaderLoc;
     };
 }
 

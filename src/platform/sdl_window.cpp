@@ -17,7 +17,7 @@ namespace OZZ {
         auto height = data.height;
 
         _window = SDL_CreateWindow(data.title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width,
-                                   height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
+                                   height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     }
 
     bool SDLWindow::Update() {
@@ -26,7 +26,16 @@ namespace OZZ {
 
         // Do stuff with events
         if (event.type == SDL_QUIT) return true;
-
+        if (event.type == SDL_WINDOWEVENT) {
+            switch (event.window.event) {
+                case SDL_WINDOWEVENT_RESIZED: {
+                    if (_resizeCallback) {
+                        _resizeCallback();
+                    }
+                    break;
+                }
+            }
+        }
         return false;
     }
 

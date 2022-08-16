@@ -8,7 +8,7 @@ namespace OZZ {
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
         _window = glfwCreateWindow(static_cast<int>(data.width), static_cast<int>(data.height), data.title.c_str(),
                                    nullptr, nullptr);
@@ -83,6 +83,14 @@ namespace OZZ {
 
             if (input) {
                 input->UpdateMouseState(button, action == GLFW_PRESS ? 1.f : 0.f);
+            }
+        });
+
+        glfwSetFramebufferSizeCallback(_window, [](GLFWwindow* window, int width, int height) {
+            auto *multiplatWindow = dynamic_cast<MultiPlatformWindow *>(ServiceLocator::GetWindow());
+
+            if (multiplatWindow->_resizeCallback) {
+                multiplatWindow->_resizeCallback();
             }
         });
 

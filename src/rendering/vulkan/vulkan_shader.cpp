@@ -12,8 +12,7 @@ namespace OZZ {
     VulkanShader::VulkanShader(VulkanRenderer *renderer)  : _renderer(renderer) {}
 
     VulkanShader::~VulkanShader() {
-        vkDestroyPipeline(_renderer->_device, _pipeline, nullptr);
-        vkDestroyPipelineLayout(_renderer->_device, _pipelineLayout, nullptr);
+        cleanPipelineObjects();
     }
 
     void VulkanShader::Bind() {
@@ -21,6 +20,11 @@ namespace OZZ {
     }
 
     void VulkanShader::Load(const std::string &&vertexShader, const std::string &&fragmentShader) {
+        cleanPipelineObjects();
+
+        _vertexShaderLoc = vertexShader;
+        _fragmentShaderLoc = fragmentShader;
+
         VkShaderModule vertShader;
         if (!VulkanUtilities::LoadShaderModule(vertexShader, _renderer->_device, vertShader)) {
             std::cout << "Failed to load vertex shader module\n";
@@ -74,5 +78,21 @@ namespace OZZ {
 
         vkDestroyShaderModule(_renderer->_device, fragShader, nullptr);
         vkDestroyShaderModule(_renderer->_device, vertShader, nullptr);
+    }
+
+    void VulkanShader::Rebuild() {
+        Load(std::move(_vertexShaderLoc), std::move(_fragmentShaderLoc));
+    }
+
+    void VulkanShader::cleanPipelineObjects() {
+        if (_pipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(_renderer->_device, _pipeline, nullptr);
+            _pipeline = VK_NULL_HANDLE;
+        }
+
+        if (_pipelineLayout != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(_renderer->_device, _pipelineLayout, nullptr);
+            _pipelineLayout = VK_NULL_HANDLE;
+        }
     }
 }
