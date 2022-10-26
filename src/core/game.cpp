@@ -39,10 +39,10 @@ namespace OZZ {
 
             // Update game state
             Update(0.0f);
+
             // Update physics
 
             ServiceLocator::GetRenderer()->BeginFrame();
-
 
             Render();
             // Draw
@@ -62,11 +62,10 @@ namespace OZZ {
         ServiceLocator::Provide(new SDLWindow());
         // Open the window
         ServiceLocator::GetWindow()->OpenWindow({
-                                                        .title = _title,
-                                                        .width = 800,
-                                                        .height = 600
-                                                });
-        // Initialize input system
+                .title = _title,
+                .width = 800,
+                .height = 600
+        });
 
         // initialize the renderer
         RendererSettings settings {
