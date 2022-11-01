@@ -19,6 +19,11 @@ namespace OZZ {
         colorBlendStateCreateInfo.attachmentCount = 1;
         colorBlendStateCreateInfo.pAttachments = &_colorBlendAttachment;
 
+        VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+        VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+        dynamicStateCreateInfo.dynamicStateCount= 2;
+        dynamicStateCreateInfo.pDynamicStates = dynamicStates;
+
         VkGraphicsPipelineCreateInfo pipelineCreateInfo { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
         pipelineCreateInfo.stageCount = static_cast<uint32_t>(_shaderStages.size());
         pipelineCreateInfo.pStages = _shaderStages.data();
@@ -33,6 +38,7 @@ namespace OZZ {
         pipelineCreateInfo.subpass = 0;
         pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
         pipelineCreateInfo.pDepthStencilState = &_depthStencil;
+        pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 
         VkPipeline newPipeline;
 

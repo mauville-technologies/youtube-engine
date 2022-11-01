@@ -41,6 +41,6 @@ namespace OZZ {
 
     private:
         uint32_t _id;
-        entt::registry _registry;
+        entt::registry& _registry;
     };
 }

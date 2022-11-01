@@ -15,6 +15,9 @@ namespace OZZ {
     Game::Game() : Game("New Youtube Engine Game") {}
 
     Game::Game(std::string windowTitle) : _title(std::move(windowTitle)), _running(true) {
+        // Create scene
+        _currentScene = std::make_unique<Scene>();
+
         initializeServices();
     }
 
@@ -41,7 +44,6 @@ namespace OZZ {
             Update(0.0f);
 
             // Update physics
-
             ServiceLocator::GetRenderer()->BeginFrame();
 
             Render();
@@ -58,8 +60,9 @@ namespace OZZ {
         ServiceLocator::Provide(new InputManager());
 
         // Provide a window
-//        ServiceLocator::Provide(new MultiPlatformWindow());
-        ServiceLocator::Provide(new SDLWindow());
+        ServiceLocator::Provide(new MultiPlatformWindow());
+//        ServiceLocator::Provide(new SDLWindow());
+
         // Open the window
         ServiceLocator::GetWindow()->OpenWindow({
                 .title = _title,

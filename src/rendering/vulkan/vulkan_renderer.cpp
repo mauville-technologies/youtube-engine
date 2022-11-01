@@ -33,6 +33,8 @@ namespace OZZ {
         WaitForIdle();
 
         cleanupSwapchain();
+        vkDestroyDescriptorPool(_device, _descriptorPool, nullptr);
+
         vkDestroySwapchainKHR(_device, _swapchain, nullptr);
 
         vmaDestroyAllocator(_allocator);
@@ -58,7 +60,7 @@ namespace OZZ {
         VkResult result = vkAcquireNextImageKHR(_device, _swapchain, 1000000000, getCurrentFrame().PresentSemaphore,
                                                 VK_NULL_HANDLE, &getCurrentFrame().SwapchainImageIndex);
 
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        if (result == VK_ERROR_OUT_OF_DATE_KHR ) {
             recreateSwapchain();
             return;
         }
@@ -142,9 +144,6 @@ namespace OZZ {
             VK_CHECK(result);
         }
 
-        // Remove any expired shaders from the weak references
-        erase_if(_shaders, [](auto shader) { return shader.expired(); });
-
         _frameNumber++;
     }
 
@@ -159,9 +158,7 @@ namespace OZZ {
     }
 
     std::shared_ptr<Shader> VulkanRenderer::CreateShader() {
-        auto newShader = std::make_shared<VulkanShader>(this);
-        _shaders.push_back(newShader);
-        return newShader;
+        return std::make_shared<VulkanShader>(this);
     }
 
 
@@ -283,10 +280,17 @@ namespace OZZ {
         vkDestroyImageView(_device, _depthImageView, nullptr);
         vmaDestroyImage(_allocator, _depthImage, _depthImageAllocation);
 
-        vkDestroyDescriptorPool(_device, _descriptorPool, nullptr);
     }
 
     void VulkanRenderer::recreateSwapchain() {
+        auto [width, height] = ServiceLocator::GetWindow()->GetWindowExtents();
+
+        if (width == 0 || height == 0) {
+            // if the framebuffer size is zero, the window is minimized and we should pause the renderer.
+            _recreateFrameBuffer = true;
+            return;
+        }
+
         vkDeviceWaitIdle(_device);
         cleanupSwapchain();
 
@@ -294,19 +298,8 @@ namespace OZZ {
         createCommands();
         createDefaultRenderPass();
         createFramebuffers();
-        createDescriptorPools();
-
-        rebuildShaders();
-        //TODO: RESET SHADERS!
     }
 
-    void VulkanRenderer::rebuildShaders() {
-        for (const auto &shader: _shaders) {
-            if (auto shaderPtr = shader.lock()) {
-                reinterpret_pointer_cast<VulkanShader>(shaderPtr)->Rebuild();
-            }
-        }
-    }
 
     void VulkanRenderer::createSwapchain() {
 

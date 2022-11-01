@@ -10,6 +10,7 @@
 #include "vulkan_renderer.h"
 #include "vulkan_buffer.h"
 #include "vulkan_texture.h"
+#include "youtube_engine/service_locator.h"
 
 namespace OZZ {
     VulkanShader::VulkanShader(VulkanRenderer* renderer) :
@@ -40,6 +41,17 @@ namespace OZZ {
 
 
         vkCmdBindPipeline(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
+
+        auto [width, height] = ServiceLocator::GetWindow()->GetWindowExtents();
+        VkViewport viewport = {0.0, 0.0, static_cast<float>(width), static_cast<float>(height), 0.0, 1.0};
+        vkCmdSetViewport(_renderer->getCurrentFrame().MainCommandBuffer, 0, 1, &viewport);
+
+        VkRect2D scissor {
+            .offset = {0, 0},
+            .extent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) },
+        };
+
+        vkCmdSetScissor(_renderer->getCurrentFrame().MainCommandBuffer, 0, 1, &scissor);
     }
 
 

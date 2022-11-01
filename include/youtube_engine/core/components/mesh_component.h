@@ -6,6 +6,10 @@
 
 namespace OZZ {
     class MeshComponent {
+    public:
+        MeshComponent();
+        ~MeshComponent();
+
         // Shader
         // Texture(s)
         // Buffers

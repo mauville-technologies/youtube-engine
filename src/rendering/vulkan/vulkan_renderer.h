@@ -122,11 +122,6 @@ namespace OZZ {
          */
 
         FrameData _frames[MAX_FRAMES_IN_FLIGHT];
-
-        /*
-         * References to the shaders created in the system to be rebuilt when swapchain is recreated
-         */
-        std::vector<std::weak_ptr<Shader>> _shaders {};
     };
 }
 

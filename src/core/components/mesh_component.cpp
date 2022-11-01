@@ -5,4 +5,12 @@
 #include "youtube_engine/core/components/mesh_component.h"
 
 namespace OZZ {
-} // OZZ
+
+    MeshComponent::MeshComponent() {
+
+    }
+
+    MeshComponent::~MeshComponent() {
+
+    }
+}
