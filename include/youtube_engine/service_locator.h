@@ -3,6 +3,7 @@
 #include <youtube_engine/platform/window.h>
 #include <youtube_engine/rendering/renderer.h>
 #include <youtube_engine/input/input_manager.h>
+#include <youtube_engine/resources/resource_manager.h>
 
 namespace OZZ {
     class ServiceLocator {
@@ -10,6 +11,7 @@ namespace OZZ {
         static inline Window* GetWindow() { return _window.get(); }
         static inline Renderer* GetRenderer() { return _renderer.get(); }
         static inline InputManager* GetInputManager() { return _inputManager.get(); }
+        static inline ResourceManager* GetResourceManager() { return _resourceManager.get(); }
 
         static inline void Provide(Window *window) {
             if (_window != nullptr) return;
@@ -28,9 +30,15 @@ namespace OZZ {
             _inputManager = std::unique_ptr<InputManager>(inputManager);
         }
 
+        static inline void Provide(ResourceManager* resourceManager) {
+            if (_resourceManager != nullptr) return;
+            _resourceManager = std::unique_ptr<ResourceManager>(resourceManager);
+        }
+
         static inline void ShutdownServices() {
             // ensure we shut down services in the correct order
             // usually opposite order of initialized.
+            shutdownResourceManager();
             shutdownInputManager();
             shutdownRenderer();
             shutdownWindow();
@@ -41,6 +49,7 @@ namespace OZZ {
         static inline std::unique_ptr<Window> _window = nullptr;
         static inline std::unique_ptr<Renderer> _renderer = nullptr;
         static inline std::unique_ptr<InputManager> _inputManager = nullptr;
+        static inline std::unique_ptr<ResourceManager> _resourceManager = nullptr;
 
         static inline void shutdownWindow() {
             _window.reset();
@@ -60,5 +69,10 @@ namespace OZZ {
             _inputManager.reset();
         }
 
+        static inline void shutdownResourceManager() {
+            if (!_resourceManager) return;
+
+            _resourceManager.reset();
+        }
     };
 }

@@ -19,3 +19,6 @@
 [submodule "external/entt"]
 	path = external/entt
 	url = git@github.com:skypjack/entt.git
+[submodule "external/json"]
+	path = external/json
+	url = git@github.com:nlohmann/json.git

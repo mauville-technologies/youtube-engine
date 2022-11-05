@@ -76,6 +76,7 @@ namespace OZZ {
         };
 
         ServiceLocator::Provide(new VulkanRenderer(), settings);
+        ServiceLocator::Provide(new ResourceManager());
     }
 
     void Game::shutdownServices() {

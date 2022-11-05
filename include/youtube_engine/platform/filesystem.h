@@ -27,5 +27,9 @@ namespace OZZ {
         static inline Path GetAssetPath() {
             return GetRootPath() /= ASSETS_DIR_NAME;
         }
+
+        static inline bool DoesFileExist(const Path& path) {
+            return std::filesystem::exists(path);
+        }
     };
 }
