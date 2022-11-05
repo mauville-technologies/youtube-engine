@@ -5,6 +5,8 @@
 
 #pragma once
 #include <iostream>
+#include <vector>
+
 #include "vulkan_includes.h"
 
 using namespace std;
@@ -20,7 +22,7 @@ using namespace std;
 namespace OZZ {
     class VulkanUtilities {
     public:
-        static bool LoadShaderModule(const std::string& filePath, VkDevice device, VkShaderModule &outShaderModule);
+        static std::vector<uint32_t> LoadShaderModule(const std::string& filePath, VkDevice device, VkShaderModule &outShaderModule);
     };
 }
 

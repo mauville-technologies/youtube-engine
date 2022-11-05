@@ -59,7 +59,8 @@ target_link_libraries(${PROJECT_NAME}
         glfw
         vk-bootstrap
         VulkanMemoryAllocator
-        SPIRV-Cross
+        spirv-cross-core
+        spirv-cross-glsl
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC

@@ -10,6 +10,7 @@
 
 #include <youtube_engine/platform/filesystem.h>
 #include <youtube_engine/resources/types/resource.h>
+#include <youtube_engine/resources/types/material.h>
 
 namespace OZZ {
 

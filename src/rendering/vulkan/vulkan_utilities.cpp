@@ -5,17 +5,18 @@
 
 #include "vulkan_utilities.h"
 #include <youtube_engine/platform/filesystem.h>
+#include <spirv_glsl.hpp>
 
 #include <fstream>
 #include <vector>
 
 namespace OZZ {
-    bool VulkanUtilities::LoadShaderModule(const string &shaderName, VkDevice device, VkShaderModule &outShaderModule) {
-        std::ifstream file(Filesystem::GetShaderPath() / shaderName, std::ios::ate | std::ios::binary);
+    std::vector<uint32_t> VulkanUtilities::LoadShaderModule(const string &shaderPath, VkDevice device, VkShaderModule &outShaderModule) {
+        std::ifstream file(shaderPath, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
             // ERROR LOGGING?
-            return false;
+            return {};
         }
 
         size_t filesize = static_cast<size_t>(file.tellg());
@@ -32,9 +33,37 @@ namespace OZZ {
         VkShaderModule shaderModule;
         if (vkCreateShaderModule(device, &shaderModuleCreateInfo, nullptr, &shaderModule) != VK_SUCCESS) {
             // log a problem?
-            return false;
+            return {};
         }
         outShaderModule = shaderModule;
-        return true;
+
+        spirv_cross::CompilerGLSL glsl(buffer);
+        spirv_cross::ShaderResources resources = glsl.get_shader_resources();
+
+        for (auto& uniformBuffer : resources.uniform_buffers) {
+            unsigned set = glsl.get_decoration(uniformBuffer.id, spv::DecorationDescriptorSet);
+            unsigned binding = glsl.get_decoration(uniformBuffer.id, spv::DecorationBinding);
+            std::cout << "There was a uniform buffer called " << uniformBuffer.name << " at (set, binding) -- (" << set << ", " << binding << ")" << std::endl;
+
+            // Get base type
+            const spirv_cross::SPIRType &baseType = glsl.get_type(uniformBuffer.base_type_id);
+
+            if (baseType.basetype == spirv_cross::SPIRType::Struct) {
+                std::cout << "This is a struct\n";
+
+                auto size = glsl.get_declared_struct_size(baseType);
+                std::cout << "It has size " << size << "\n";
+                for (auto &memberTypeId : baseType.member_types) {
+                    auto memberType = glsl.get_type(memberTypeId);
+                    auto memberBaseType = memberType.basetype;
+                    if (memberBaseType == spirv_cross::SPIRType::Float) {
+                        if (memberType.vecsize != 1) {
+                            std::cout << "Vector or matrix with " << memberType.vecsize << " vectors and " << memberType.columns << " columns\n";
+                        }
+                    }
+                }
+            }
+        }
+        return buffer;
     }
 }
