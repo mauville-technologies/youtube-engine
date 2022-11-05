@@ -4,6 +4,7 @@
 
 #include <youtube_engine/resources/types/material.h>
 #include <youtube_engine/service_locator.h>
+#include <nlohmann/json.hpp>
 
 namespace OZZ {
     Material::Material(const Path &path) : Resource(path, Resource::Type::SHADER) {
@@ -22,7 +23,10 @@ namespace OZZ {
         std::string vertexPath {};
         std::string fragmentPath {};
 
+        // Load the shaders
         _shader->Load(std::move(vertexPath), std::move(fragmentPath));
+
+        // Set the default values
     }
 
     void Material::unload() {

@@ -17,6 +17,8 @@ add_subdirectory(external/SDL)
 add_subdirectory(external/vk-bootstrap)
 add_subdirectory(external/VulkanMemoryAllocator)
 add_subdirectory(external/entt)
+add_subdirectory(external/json)
+add_subdirectory(external/SPRIV-Cross)
 
 file(GLOB SOURCES "src/*.cpp" "src/*/*.cpp" "src/*/*/*.cpp" "src/*/*/*/*.cpp")
 
@@ -27,6 +29,8 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         glm
+        nlohmann_json
+
         # TODO: investigate moving entt out of the public exposure land
         EnTT
     PRIVATE
@@ -38,11 +42,14 @@ target_include_directories(${PROJECT_NAME}
         vk-bootstrap
         VulkanMemoryAllocator
         external/stb
+        SPIRV-Cross
 )
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
         glm
+        nlohmann_json
+
         # TODO: investigate moving entt out of the public exposure land
         EnTT
     PRIVATE
@@ -52,6 +59,7 @@ target_link_libraries(${PROJECT_NAME}
         glfw
         vk-bootstrap
         VulkanMemoryAllocator
+        SPIRV-Cross
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC

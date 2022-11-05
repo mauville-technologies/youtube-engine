@@ -22,3 +22,6 @@
 [submodule "external/json"]
 	path = external/json
 	url = git@github.com:nlohmann/json.git
+[submodule "external/SPRIV-Cross"]
+	path = external/SPRIV-Cross
+	url = git@github.com:KhronosGroup/SPIRV-Cross.git
