@@ -6,7 +6,8 @@
 #pragma once
 #include <iostream>
 #include <vector>
-
+#include <spirv_glsl.hpp>
+#include <youtube_engine/rendering/shader.h>
 #include "vulkan_includes.h"
 
 using namespace std;
@@ -22,7 +23,9 @@ using namespace std;
 namespace OZZ {
     class VulkanUtilities {
     public:
-        static std::vector<uint32_t> LoadShaderModule(const std::string& filePath, VkDevice device, VkShaderModule &outShaderModule);
+        static bool LoadShaderModule(const std::string& filePath, VkDevice device, VkShaderModule &outShaderModule, ShaderData& outShaderData);
+        static ShaderResource BuildShaderResource(ShaderResource::ResourceType type, spirv_cross::Resource res, const spirv_cross::CompilerGLSL& shader);
+        static ShaderData LoadShaderData(const spirv_cross::CompilerGLSL& shader);
     };
 }
 

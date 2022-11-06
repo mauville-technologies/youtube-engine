@@ -71,12 +71,14 @@ namespace OZZ {
         _fragmentShader = fragmentShader;
 
         VkShaderModule fragmentShaderModule;
-        if (VulkanUtilities::LoadShaderModule(fragmentShader, _renderer->_device, fragmentShaderModule).empty()) {
+        ShaderData fragmentShaderData;
+        if (!VulkanUtilities::LoadShaderModule(fragmentShader, _renderer->_device, fragmentShaderModule, fragmentShaderData)) {
             std::cout << "Failed to load fragment shader module at: " << _fragmentShader << "\n";
         }
 
         VkShaderModule vertexShaderModule;
-        if (VulkanUtilities::LoadShaderModule(vertexShader, _renderer->_device, vertexShaderModule).empty()) {
+        ShaderData vertexShaderData;
+        if (!VulkanUtilities::LoadShaderModule(vertexShader, _renderer->_device, vertexShaderModule, vertexShaderData)) {
             std::cout << "Failed to load vertex shader module at: " << _vertexShader << "\n";
         }
 
