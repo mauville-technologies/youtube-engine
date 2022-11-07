@@ -5,6 +5,7 @@
 #pragma once
 #include <string>
 #include <memory>
+#include <unordered_map>
 #include <youtube_engine/rendering/buffer.h>
 #include <youtube_engine/rendering/texture.h>
 
@@ -50,10 +51,10 @@ namespace OZZ {
         };
 
         struct Member {
-            std::string Name;
-            uint64_t Size;
-            uint64_t Offset;
-            MemberType Type;
+            std::string Name { };
+            uint64_t Size { 0 };
+            uint64_t Offset { 0 };
+            MemberType Type { MemberType::Unknown };
         };
 
         uint32_t Set { 0 };
@@ -66,6 +67,42 @@ namespace OZZ {
 
     struct ShaderData {
         std::vector<ShaderResource> Resources {};
+
+        static ShaderData Merge(const ShaderData& first, const ShaderData& second) {
+            ShaderData newShaderData {};
+
+            std::unordered_map<std::string, ShaderResource> _mergedResources {};
+
+            // Merge Resources
+            for (const auto& resource : first.Resources) {
+                _mergedResources[resource.Name] = resource;
+            }
+
+            for (const auto& resource : second.Resources) {
+                if (_mergedResources.contains(resource.Name)) {
+                    std::unordered_map<std::string, ShaderResource::Member> existingMembers {};
+
+                    // Merge resource members
+                    for (const auto& member : _mergedResources[resource.Name].Members) {
+                        existingMembers[member.Name] = member;
+                    }
+
+                    for (const auto& member : resource.Members) {
+                        if (!existingMembers.contains(member.Name)) {
+                            existingMembers[member.Name] = member;
+                        }
+                    }
+                } else {
+                    _mergedResources[resource.Name] = resource;
+                }
+            }
+
+            for (const auto& [key, resource] : _mergedResources) {
+                newShaderData.Resources.push_back(resource);
+            }
+
+            return newShaderData;
+        }
     };
 
     class Shader {
@@ -80,7 +117,7 @@ namespace OZZ {
 
         const ShaderData& GetShaderData() { return _data; }
 
-    private:
+    protected:
         ShaderData _data;
     };
 

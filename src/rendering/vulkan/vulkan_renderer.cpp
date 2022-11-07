@@ -395,7 +395,7 @@ namespace OZZ {
         VkDescriptorPoolCreateInfo descriptorPoolCreateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
         descriptorPoolCreateInfo.flags = 0;
         descriptorPoolCreateInfo.maxSets = 10;
-        descriptorPoolCreateInfo.poolSizeCount = POOL_SIZES.size();
+        descriptorPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(POOL_SIZES.size());
         descriptorPoolCreateInfo.pPoolSizes = POOL_SIZES.data();
 
         VK_CHECK(vkCreateDescriptorPool(_device, &descriptorPoolCreateInfo, nullptr, &_descriptorPool));

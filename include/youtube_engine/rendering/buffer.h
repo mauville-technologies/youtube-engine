@@ -26,7 +26,7 @@ namespace OZZ {
         virtual ~IndexBuffer() = default;
         virtual void Bind() = 0;
         virtual void UploadData(const std::vector<uint32_t>&) = 0;
-        virtual uint64_t GetCount() = 0;
+        virtual uint32_t GetCount() = 0;
     };
 
     class UniformBuffer {

@@ -56,7 +56,7 @@ namespace OZZ {
 
         void UploadData(const std::vector<uint32_t> &vector) override;
 
-        uint64_t GetCount() override { return _count; };
+        uint32_t GetCount() override { return _count; };
 
     private:
         VulkanRenderer* _renderer;
@@ -64,7 +64,7 @@ namespace OZZ {
         uint64_t _bufferSize;
         std::shared_ptr<VulkanBuffer> _buffer { nullptr };
 
-        uint64_t _count = 0;
+        uint32_t _count = 0;
     };
 
     class VulkanUniformBuffer : public UniformBuffer {

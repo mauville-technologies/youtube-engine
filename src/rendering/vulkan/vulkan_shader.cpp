@@ -2,6 +2,8 @@
 // Created by ozzadar on 2022-02-01.
 //
 
+#include <youtube_engine/service_locator.h>
+
 #include "vulkan_shader.h"
 #include "vulkan_utilities.h"
 #include "vulkan_initializers.h"
@@ -10,7 +12,6 @@
 #include "vulkan_renderer.h"
 #include "vulkan_buffer.h"
 #include "vulkan_texture.h"
-#include "youtube_engine/service_locator.h"
 
 namespace OZZ {
     VulkanShader::VulkanShader(VulkanRenderer* renderer) :
@@ -32,7 +33,7 @@ namespace OZZ {
         for (auto& uniform : _uniformBuffers) {
             auto descriptorSet = dynamic_cast<VulkanUniformBuffer*>(uniform.get())->GetDescriptorSet(&_descriptorSetLayout);
 
-            vkCmdBindDescriptorSets((VkCommandBuffer) _renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
+            vkCmdBindDescriptorSets( _renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
                                     0, 1, &descriptorSet, 0, nullptr);
         }
 
@@ -82,6 +83,8 @@ namespace OZZ {
             std::cout << "Failed to load vertex shader module at: " << _vertexShader << "\n";
         }
 
+        _data = ShaderData::Merge(fragmentShaderData, vertexShaderData);
+
         buildDescriptorSets();
 
         auto pipelineLayoutInfo = VulkanInitializers::PipelineLayoutCreateInfo();
@@ -92,7 +95,7 @@ namespace OZZ {
             layouts.push_back(_textureSetLayout);
         }
 
-        pipelineLayoutInfo.setLayoutCount = layouts.size();
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
         pipelineLayoutInfo.pSetLayouts = layouts.data();
 
         // descriptor set layout goes here
@@ -180,6 +183,8 @@ namespace OZZ {
     }
 
     void VulkanShader::buildDescriptorSets() {
+        // TODO: Build descriptor sets based on ShaderData
+
         std::vector<VkDescriptorSetLayoutBinding> bindings {GetUniformBufferLayoutBinding(0)};
         auto createDescriptorSetLayout = BuildDescriptorSetLayout(bindings);
 
@@ -188,7 +193,7 @@ namespace OZZ {
         bindings = {};
 
         for (size_t i = 0; i < _textures.size(); i++) {
-            bindings.push_back(GetTextureLayoutBinding(i));
+            bindings.push_back(GetTextureLayoutBinding(static_cast<int>(i)));
         }
 
         createDescriptorSetLayout = BuildDescriptorSetLayout(bindings);
@@ -203,7 +208,7 @@ namespace OZZ {
 
         for (size_t i = 0; i < _textures.size(); i++) {
             auto texture = _textures[i];
-            dynamic_cast<VulkanTexture *>(texture.get())->WriteToDescriptorSet(_texturesDescriptorSet, i);
+            dynamic_cast<VulkanTexture *>(texture.get())->WriteToDescriptorSet(_texturesDescriptorSet, static_cast<int>(i));
         }
     }
 

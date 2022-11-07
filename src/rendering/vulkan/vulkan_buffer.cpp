@@ -168,7 +168,7 @@ namespace OZZ {
             if (_buffer) _buffer.reset();
 
             _bufferSize = newBufferSize;
-            _count = static_cast<uint64_t>(indices.size());
+            _count = static_cast<uint32_t>(indices.size());
             _buffer = std::make_shared<VulkanBuffer>(
                     &_renderer->_allocator, _bufferSize,
                     VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
