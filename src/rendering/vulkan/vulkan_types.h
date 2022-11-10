@@ -68,7 +68,7 @@ namespace OZZ {
      * UNIFORM BUFFER THINGS
      * TODO: This needs to be abstracted
      */
-    inline VkDescriptorSetLayoutBinding GetUniformBufferLayoutBinding(int binding) {
+    inline VkDescriptorSetLayoutBinding GetUniformBufferLayoutBinding(uint32_t binding) {
         VkDescriptorSetLayoutBinding uboLayoutBinding {};
         uboLayoutBinding.binding = binding;
         uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -79,7 +79,7 @@ namespace OZZ {
         return uboLayoutBinding;
     }
 
-    inline VkDescriptorSetLayoutBinding GetTextureLayoutBinding(int binding) {
+    inline VkDescriptorSetLayoutBinding GetTextureLayoutBinding(uint32_t binding) {
         VkDescriptorSetLayoutBinding textureLayoutBinding {};
         textureLayoutBinding.binding = binding;
         textureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

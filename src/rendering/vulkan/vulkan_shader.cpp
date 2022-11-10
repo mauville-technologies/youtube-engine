@@ -3,7 +3,7 @@
 //
 
 #include <youtube_engine/service_locator.h>
-
+#include <map>
 #include "vulkan_shader.h"
 #include "vulkan_utilities.h"
 #include "vulkan_initializers.h"
@@ -31,7 +31,7 @@ namespace OZZ {
     void VulkanShader::Bind() {
         // Bind Uniforms
         for (auto& uniform : _uniformBuffers) {
-            auto descriptorSet = dynamic_cast<VulkanUniformBuffer*>(uniform.get())->GetDescriptorSet(&_descriptorSetLayout);
+            auto descriptorSet = dynamic_cast<VulkanUniformBuffer*>(uniform.get())->GetDescriptorSet(&_descriptorSetLayouts[0]);
 
             vkCmdBindDescriptorSets( _renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
                                     0, 1, &descriptorSet, 0, nullptr);
@@ -40,6 +40,8 @@ namespace OZZ {
         vkCmdBindDescriptorSets(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
                                 1, 1, &_texturesDescriptorSet, 0, nullptr);
 
+
+        // TODO: Figure out how to bind descriptor sets and junk
 
         vkCmdBindPipeline(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
 
@@ -89,14 +91,8 @@ namespace OZZ {
 
         auto pipelineLayoutInfo = VulkanInitializers::PipelineLayoutCreateInfo();
 
-        std::vector<VkDescriptorSetLayout> layouts {_descriptorSetLayout};
-
-        if (_textureSetLayout) {
-            layouts.push_back(_textureSetLayout);
-        }
-
-        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
-        pipelineLayoutInfo.pSetLayouts = layouts.data();
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(_descriptorSetLayouts.size());
+        pipelineLayoutInfo.pSetLayouts = _descriptorSetLayouts.data();
 
         // descriptor set layout goes here
         // therefore they probably belong to the shader
@@ -165,13 +161,11 @@ namespace OZZ {
             vkDestroyPipelineLayout(_renderer->_device, _pipelineLayout, nullptr);
         }
 
-        if (_descriptorSetLayout) {
-            vkDestroyDescriptorSetLayout(_renderer->_device, _descriptorSetLayout, nullptr);
+        for (auto descriptorSetLayout : _descriptorSetLayouts) {
+            vkDestroyDescriptorSetLayout(_renderer->_device, descriptorSetLayout, nullptr);
         }
 
-        if (_textureSetLayout) {
-            vkDestroyDescriptorSetLayout(_renderer->_device, _textureSetLayout, nullptr);
-        }
+        _descriptorSetLayouts.clear();
 
         for (auto& uniform : _uniformBuffers) {
             dynamic_cast<VulkanUniformBuffer*>(uniform.get())->ResetDescriptorSet();
@@ -185,25 +179,44 @@ namespace OZZ {
     void VulkanShader::buildDescriptorSets() {
         // TODO: Build descriptor sets based on ShaderData
 
-        std::vector<VkDescriptorSetLayoutBinding> bindings {GetUniformBufferLayoutBinding(0)};
-        auto createDescriptorSetLayout = BuildDescriptorSetLayout(bindings);
+        // First step is to collect the descriptors
+        std::map<uint32_t, std::vector<VkDescriptorSetLayoutBinding>> _descriptorSetDescriptions {};
 
-        VK_CHECK(vkCreateDescriptorSetLayout(_renderer->_device, &createDescriptorSetLayout, nullptr, &_descriptorSetLayout));
+        for (const auto& resource : _data.Resources) {
+            if (!_descriptorSetDescriptions.contains(resource.Set)) {
+                _descriptorSetDescriptions[resource.Set] = {};
+            }
 
-        bindings = {};
-
-        for (size_t i = 0; i < _textures.size(); i++) {
-            bindings.push_back(GetTextureLayoutBinding(static_cast<int>(i)));
+            switch (resource.Type) {
+                case ShaderResource::ResourceType::PushConstant:
+                    break;
+                case ShaderResource::ResourceType::Uniform:
+                    _descriptorSetDescriptions[resource.Set].push_back(GetUniformBufferLayoutBinding(resource.Binding));
+                    break;
+                case ShaderResource::ResourceType::Sampler:
+                    _descriptorSetDescriptions[resource.Set].push_back(GetTextureLayoutBinding(resource.Binding));
+                    break;
+                default:
+                    break;
+            }
         }
 
-        createDescriptorSetLayout = BuildDescriptorSetLayout(bindings);
-        VK_CHECK(vkCreateDescriptorSetLayout(_renderer->_device, &createDescriptorSetLayout, nullptr,
-                                             &_textureSetLayout));
+
+        for (const auto& [key, bindings] : _descriptorSetDescriptions) {
+            auto createDescriptorSetLayout = BuildDescriptorSetLayout(bindings);
+
+            VkDescriptorSetLayout currentLayout { VK_NULL_HANDLE };
+
+            VK_CHECK(vkCreateDescriptorSetLayout(_renderer->_device, &createDescriptorSetLayout, nullptr,
+                                                 &currentLayout));
+
+            _descriptorSetLayouts.push_back(currentLayout);
+        }
 
         VkDescriptorSetAllocateInfo allocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
         allocateInfo.descriptorPool = _renderer->_descriptorPool;
         allocateInfo.descriptorSetCount = 1;
-        allocateInfo.pSetLayouts = &_textureSetLayout;
+        allocateInfo.pSetLayouts = &_descriptorSetLayouts[1];
         VK_CHECK(vkAllocateDescriptorSets(_renderer->_device, &allocateInfo, &_texturesDescriptorSet));
 
         for (size_t i = 0; i < _textures.size(); i++) {
