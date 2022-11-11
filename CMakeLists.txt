@@ -19,6 +19,7 @@ add_subdirectory(external/VulkanMemoryAllocator)
 add_subdirectory(external/entt)
 add_subdirectory(external/json)
 add_subdirectory(external/SPRIV-Cross)
+add_subdirectory(external/assimp)
 
 file(GLOB SOURCES "src/*.cpp" "src/*/*.cpp" "src/*/*/*.cpp" "src/*/*/*/*.cpp")
 
@@ -43,6 +44,7 @@ target_include_directories(${PROJECT_NAME}
         VulkanMemoryAllocator
         external/stb
         SPIRV-Cross
+        assimp
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -61,6 +63,7 @@ target_link_libraries(${PROJECT_NAME}
         VulkanMemoryAllocator
         spirv-cross-core
         spirv-cross-glsl
+        assimp
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC

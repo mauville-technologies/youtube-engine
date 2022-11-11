@@ -8,6 +8,12 @@
 namespace OZZ {
     class Texture {
     public:
+        enum class Slot {
+            UNKNOWN,
+            DIFFUSE0,
+        };
+
+    public:
         virtual ~Texture() = default;
 
         virtual void Bind() = 0;
@@ -19,5 +25,8 @@ namespace OZZ {
         [[nodiscard]] virtual std::pair<uint32_t, uint32_t> GetSize() const = 0;
 
         [[nodiscard]] virtual int *GetHandle() const = 0;
+
+    public:
+        Slot TextureSlot { Slot::UNKNOWN };
     };
 }

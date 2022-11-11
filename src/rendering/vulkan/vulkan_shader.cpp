@@ -37,8 +37,8 @@ namespace OZZ {
                                     0, 1, &descriptorSet, 0, nullptr);
         }
 
-        vkCmdBindDescriptorSets(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
-                                1, 1, &_texturesDescriptorSet, 0, nullptr);
+//        vkCmdBindDescriptorSets(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
+//                                1, 1, &_texturesDescriptorSet, 0, nullptr);
 
 
         // TODO: Figure out how to bind descriptor sets and junk
@@ -213,16 +213,16 @@ namespace OZZ {
             _descriptorSetLayouts.push_back(currentLayout);
         }
 
-        VkDescriptorSetAllocateInfo allocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-        allocateInfo.descriptorPool = _renderer->_descriptorPool;
-        allocateInfo.descriptorSetCount = 1;
-        allocateInfo.pSetLayouts = &_descriptorSetLayouts[1];
-        VK_CHECK(vkAllocateDescriptorSets(_renderer->_device, &allocateInfo, &_texturesDescriptorSet));
-
-        for (size_t i = 0; i < _textures.size(); i++) {
-            auto texture = _textures[i];
-            dynamic_cast<VulkanTexture *>(texture.get())->WriteToDescriptorSet(_texturesDescriptorSet, static_cast<int>(i));
-        }
+//        VkDescriptorSetAllocateInfo allocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+//        allocateInfo.descriptorPool = _renderer->_descriptorPool;
+//        allocateInfo.descriptorSetCount = 1;
+//        allocateInfo.pSetLayouts = &_descriptorSetLayouts[1];
+//        VK_CHECK(vkAllocateDescriptorSets(_renderer->_device, &allocateInfo, &_texturesDescriptorSet));
+//
+//        for (size_t i = 0; i < _textures.size(); i++) {
+//            auto texture = _textures[i];
+//            dynamic_cast<VulkanTexture *>(texture.get())->WriteToDescriptorSet(_texturesDescriptorSet, static_cast<int>(i));
+//        }
     }
 
 
