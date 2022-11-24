@@ -10,8 +10,15 @@
 #include <youtube_engine/rendering/texture.h>
 
 namespace OZZ {
-
     struct ShaderResource {
+
+        enum class ResourceName {
+            Unknown,
+            ViewOptions,
+            Diffuse0,
+            Diffuse1,
+        };
+
         enum class ResourceType {
             Unknown,
             PushConstant,
@@ -50,6 +57,22 @@ namespace OZZ {
             Mat4
         };
 
+        static ResourceName ResourceNameFromString(const std::string& str) {
+            if (str == "ViewOptions") {
+                return ResourceName::ViewOptions;
+            }
+
+            if (str == "Diffuse0") {
+                return ResourceName::Diffuse0;
+            }
+
+            if (str == "Diffuse1") {
+                return ResourceName::Diffuse1;
+            }
+
+            return ResourceName::Unknown;
+        }
+
         struct Member {
             std::string Name { };
             uint64_t Size { 0 };
@@ -66,40 +89,38 @@ namespace OZZ {
     };
 
     struct ShaderData {
-        std::vector<ShaderResource> Resources {};
+        std::unordered_map<ShaderResource::ResourceName, ShaderResource> Resources;
 
         static ShaderData Merge(const ShaderData& first, const ShaderData& second) {
             ShaderData newShaderData {};
 
-            std::unordered_map<std::string, ShaderResource> _mergedResources {};
+            std::unordered_map<ShaderResource::ResourceName, ShaderResource> _mergedResources {};
 
             // Merge Resources
-            for (const auto& resource : first.Resources) {
-                _mergedResources[resource.Name] = resource;
+            for (const auto& [k, v] : first.Resources) {
+                _mergedResources[k] = v;
             }
 
-            for (const auto& resource : second.Resources) {
-                if (_mergedResources.contains(resource.Name)) {
+            for (const auto& [k, v] : second.Resources) {
+                if (_mergedResources.contains(k)) {
                     std::unordered_map<std::string, ShaderResource::Member> existingMembers {};
 
                     // Merge resource members
-                    for (const auto& member : _mergedResources[resource.Name].Members) {
+                    for (const auto& member : _mergedResources[k].Members) {
                         existingMembers[member.Name] = member;
                     }
 
-                    for (const auto& member : resource.Members) {
+                    for (const auto& member : v.Members) {
                         if (!existingMembers.contains(member.Name)) {
                             existingMembers[member.Name] = member;
                         }
                     }
                 } else {
-                    _mergedResources[resource.Name] = resource;
+                    _mergedResources[k] = v;
                 }
             }
 
-            for (const auto& [key, resource] : _mergedResources) {
-                newShaderData.Resources.push_back(resource);
-            }
+            newShaderData.Resources = _mergedResources;
 
             return newShaderData;
         }
@@ -109,11 +130,8 @@ namespace OZZ {
     public:
         virtual void Bind() = 0;
         virtual void Load(const std::string&& vertexShader, const std::string&& fragmentShader) = 0;
-        virtual void AddUniformBuffer(std::shared_ptr<UniformBuffer> buffer) = 0;
-        virtual void AddTexture(std::shared_ptr<Texture> texture) = 0;
 
         virtual ~Shader() = default;
-        //TODO: Figure out uniforms
 
         const ShaderData& GetShaderData() { return _data; }
 

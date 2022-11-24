@@ -20,6 +20,8 @@ namespace OZZ {
     }
 
     void Material::load(const Path &path) {
+        std::cout << "Loading material: " << path.string() << std::endl;
+
         auto materialPath = Filesystem::GetAssetPath() / path;
         std::ifstream f(materialPath);
 

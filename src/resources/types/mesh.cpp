@@ -3,7 +3,10 @@
 //
 
 #include <youtube_engine/resources/types/mesh.h>
+#include <youtube_engine/resources/types/image.h>
+
 #include <youtube_engine/service_locator.h>
+#include <youtube_engine/rendering/images.h>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -55,8 +58,10 @@ namespace OZZ {
 #pragma clang diagnostic pop
 
     Submesh Mesh::processMesh(aiMesh *mesh, const aiScene *scene) {
+
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
+        std::unordered_map<Texture::Slot, std::shared_ptr<Image>> textures;
 
         // process vertices
         for(unsigned int i = 0; i < mesh->mNumVertices; i++) {
@@ -78,13 +83,46 @@ namespace OZZ {
             }
         }
 
-//        // process material
-//        if(mesh->mMaterialIndex >= 0)
-//        {
-//            [...]
-//        }
+        Submesh submesh {std::move(vertices), std::move(indices) };
 
-        return {std::move(vertices), std::move(indices) };
+//        // process material
+        if(mesh->mMaterialIndex >= 0) {
+            // TODO: Currently we're only pulling the textures out of the materials here, ideally we would also pull the different material settings as well.
+            aiMaterial *mat = scene->mMaterials[mesh->mMaterialIndex];
+
+            // Read Diffuse Textures
+            for(unsigned int i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE); i++) {
+                auto textureSlot = static_cast<Texture::Slot>((int)Texture::Slot::DIFFUSE0 + i);
+
+                aiString str;
+                mat->GetTexture(aiTextureType_DIFFUSE, i, &str);
+
+                if (auto* texData = scene->GetEmbeddedTexture(str.C_Str())) {
+                    if (!texData->mHeight) {
+                        // Texture is compressed, treat it as a char array
+                        auto* buffer = reinterpret_cast<char*>(texData->pcData);
+
+                        auto imageData = ImageData(buffer, texData->mWidth);
+                        submesh.SetTexture(textureSlot , ServiceLocator::GetResourceManager()->Load<Image>(str.C_Str(), imageData));
+                    }
+                } else {
+                    auto imageData = ImageData(str.C_Str());
+                    submesh.SetTexture(textureSlot , ServiceLocator::GetResourceManager()->Load<Image>(str.C_Str(), imageData));
+                }
+            }
+
+            // TODO: Read other texture types
+
+//            vector<Texture> diffuseMaps = loadMaterialTextures(material,
+//                                                               aiTextureType_DIFFUSE, "texture_diffuse");
+//            textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+//            vector<Texture> specularMaps = loadMaterialTextures(material,
+//                                                                aiTextureType_SPECULAR, "texture_specular");
+//            textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+        }
+
+        submesh.SetMaterial(ServiceLocator::GetResourceManager()->Load<Material>("materials/default_material.mat"));
+        return submesh;
     }
 
 
@@ -98,6 +136,24 @@ namespace OZZ {
 
     Submesh::~Submesh() {
         freeResources();
+    }
+
+    std::weak_ptr<Image> Submesh::SetTexture(Texture::Slot textureSlot, std::shared_ptr<Image> &&image) {
+        _textures[textureSlot] = image;
+        return _textures[textureSlot];
+    }
+
+    std::weak_ptr<Image> Submesh::GetTexture(Texture::Slot textureSlot) {
+        return _textures[textureSlot];
+    }
+
+    std::weak_ptr<Material> Submesh::SetMaterial(std::shared_ptr<Material> &&material) {
+        _material = material;
+        return _material;
+    }
+
+    std::weak_ptr<Material> Submesh::GetMaterial() {
+        return _material;
     }
 
     void Submesh::createResources() {

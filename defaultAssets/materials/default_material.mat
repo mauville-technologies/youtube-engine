@@ -1,0 +1,12 @@
+{
+  "shaders": [
+    {
+      "stage": "VERTEX",
+      "shader": "basic"
+    },
+    {
+      "stage": "FRAGMENT",
+      "shader": "basic"
+    }
+  ]
+}

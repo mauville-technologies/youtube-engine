@@ -200,6 +200,7 @@ namespace OZZ {
     }
 
     VkDescriptorSet VulkanUniformBuffer::GetDescriptorSet(VkDescriptorSetLayout* descriptorSetLayout) {
+        // TODO: Replace with WriteToDescriptorSet in shader!
         if (!_descriptorSet) {
             if (!_buffer) {
                 // Give it default data if no data was explicitely given yet
@@ -225,6 +226,8 @@ namespace OZZ {
                 descriptorSetWrite.dstArrayElement = 0;
                 descriptorSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
                 descriptorSetWrite.descriptorCount = 1;
+
+                // THIS IS THE CHANGE
                 descriptorSetWrite.pBufferInfo = &descriptorBufferInfo;
                 descriptorSetWrite.pImageInfo = nullptr;
                 descriptorSetWrite.pTexelBufferView = nullptr;

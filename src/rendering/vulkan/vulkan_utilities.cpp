@@ -49,21 +49,24 @@ namespace OZZ {
 
         // Push Constants
         for (const auto& res : resources.push_constant_buffers) {
-            data.Resources
-                .push_back(BuildShaderResource(ShaderResource::ResourceType::PushConstant, res, shader));
+
+            auto resource = BuildShaderResource(ShaderResource::ResourceType::PushConstant, res, shader);
+            data.Resources[ShaderResource::ResourceNameFromString(resource.Name)] = resource;
         }
 
         // Uniforms
         for (const auto& res : resources.uniform_buffers) {
-            data.Resources
-                .push_back(BuildShaderResource(ShaderResource::ResourceType::Uniform, res, shader));
+            auto resource = BuildShaderResource(ShaderResource::ResourceType::Uniform, res, shader);
+            data.Resources[ShaderResource::ResourceNameFromString(resource.Name)] = resource;
+
         }
 
         // Textures
         for (const auto& res : resources.sampled_images) {
-            data.Resources
-                .push_back(BuildShaderResource(ShaderResource::ResourceType::Sampler, res, shader));
+            auto resource = BuildShaderResource(ShaderResource::ResourceType::Sampler, res, shader);
+            data.Resources[ShaderResource::ResourceNameFromString(resource.Name)] = resource;
         }
+
         return data;
     }
 

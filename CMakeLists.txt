@@ -71,7 +71,6 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 )
 
 # SHADER COMPILATION
-
 file (GLOB SHADERS shaders/*.frag shaders/*.vert)
 
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ASSETS_DIR_NAME}/shaders)
@@ -82,3 +81,9 @@ foreach(shader ${SHADERS})
     add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
             COMMAND ${Vulkan_GLSLC_EXECUTABLE} -c ${shader} -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ASSETS_DIR_NAME}/shaders/${SHADER_NAME}.spv)
 endforeach()
+
+if (DEFINED ASSETS_DIR_NAME)
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${PROJECT_SOURCE_DIR}/defaultAssets/ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ASSETS_DIR_NAME})
+endif()

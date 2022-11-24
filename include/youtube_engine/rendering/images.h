@@ -14,6 +14,7 @@ namespace OZZ {
     class ImageData {
     public:
         explicit ImageData(const Path& filePath, bool flipVertical = false);
+        ImageData(char* fileData, uint32_t fileLength, bool flipVertical = false);
         explicit ImageData(uint32_t width, uint32_t height, glm::vec4 color);
 
         ~ImageData();

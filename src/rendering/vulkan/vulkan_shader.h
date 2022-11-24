@@ -19,8 +19,6 @@ namespace OZZ {
 
         void Bind() override;
         void Load(const std::string&& vertexShader, const std::string&& fragmentShader) override;
-        void AddUniformBuffer(std::shared_ptr<UniformBuffer> buffer) override;
-        void AddTexture(std::shared_ptr<Texture> texture) override;
 
         ~VulkanShader() override;
     private:
@@ -33,6 +31,7 @@ namespace OZZ {
          * PIPELINES
          */
         std::vector<VkDescriptorSetLayout> _descriptorSetLayouts {};
+        std::vector<VkDescriptorSet> _descriptorSets {};
 
         VkDescriptorSet _texturesDescriptorSet { VK_NULL_HANDLE };
 
@@ -44,9 +43,6 @@ namespace OZZ {
          */
         std::string _vertexShader;
         std::string _fragmentShader;
-
-        std::vector<std::shared_ptr<UniformBuffer>> _uniformBuffers {};
-        std::vector<std::shared_ptr<Texture>> _textures {};
     };
 
 

@@ -29,19 +29,8 @@ namespace OZZ {
     }
 
     void VulkanShader::Bind() {
-        // Bind Uniforms
-        for (auto& uniform : _uniformBuffers) {
-            auto descriptorSet = dynamic_cast<VulkanUniformBuffer*>(uniform.get())->GetDescriptorSet(&_descriptorSetLayouts[0]);
-
-            vkCmdBindDescriptorSets( _renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
-                                    0, 1, &descriptorSet, 0, nullptr);
-        }
-
-//        vkCmdBindDescriptorSets(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
-//                                1, 1, &_texturesDescriptorSet, 0, nullptr);
-
-
-        // TODO: Figure out how to bind descriptor sets and junk
+        vkCmdBindDescriptorSets(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
+                                0, static_cast<uint32_t>(_descriptorSets.size()), _descriptorSets.data(), 0, nullptr);
 
         vkCmdBindPipeline(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
 
@@ -55,18 +44,6 @@ namespace OZZ {
         };
 
         vkCmdSetScissor(_renderer->getCurrentFrame().MainCommandBuffer, 0, 1, &scissor);
-    }
-
-
-    void VulkanShader::AddUniformBuffer(std::shared_ptr<UniformBuffer> buffer) {
-        _uniformBuffers.push_back(buffer);
-        Rebuild();
-    }
-
-
-    void VulkanShader::AddTexture(std::shared_ptr<Texture> texture) {
-        _textures.push_back(texture);
-        Rebuild();
     }
 
     void VulkanShader::Load(const std::string&& vertexShader, const std::string&& fragmentShader) {
@@ -166,23 +143,14 @@ namespace OZZ {
         }
 
         _descriptorSetLayouts.clear();
-
-        for (auto& uniform : _uniformBuffers) {
-            dynamic_cast<VulkanUniformBuffer*>(uniform.get())->ResetDescriptorSet();
-        }
-
-        for (auto& texture: _textures) {
-            dynamic_cast<VulkanTexture*>(texture.get())->ResetDescriptorSet();
-        }
     }
 
     void VulkanShader::buildDescriptorSets() {
-        // TODO: Build descriptor sets based on ShaderData
-
         // First step is to collect the descriptors
         std::map<uint32_t, std::vector<VkDescriptorSetLayoutBinding>> _descriptorSetDescriptions {};
 
-        for (const auto& resource : _data.Resources) {
+        for (const auto& [k, resource] : _data.Resources) {
+
             if (!_descriptorSetDescriptions.contains(resource.Set)) {
                 _descriptorSetDescriptions[resource.Set] = {};
             }
@@ -213,16 +181,17 @@ namespace OZZ {
             _descriptorSetLayouts.push_back(currentLayout);
         }
 
-//        VkDescriptorSetAllocateInfo allocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-//        allocateInfo.descriptorPool = _renderer->_descriptorPool;
-//        allocateInfo.descriptorSetCount = 1;
-//        allocateInfo.pSetLayouts = &_descriptorSetLayouts[1];
-//        VK_CHECK(vkAllocateDescriptorSets(_renderer->_device, &allocateInfo, &_texturesDescriptorSet));
-//
-//        for (size_t i = 0; i < _textures.size(); i++) {
-//            auto texture = _textures[i];
-//            dynamic_cast<VulkanTexture *>(texture.get())->WriteToDescriptorSet(_texturesDescriptorSet, static_cast<int>(i));
-//        }
+        for (const auto& layout : _descriptorSetLayouts) {
+            VkDescriptorSet descriptorSet { VK_NULL_HANDLE };
+
+            VkDescriptorSetAllocateInfo allocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+            allocateInfo.descriptorPool = _renderer->_descriptorPool;
+            allocateInfo.descriptorSetCount = 1;
+            allocateInfo.pSetLayouts = &layout;
+            VK_CHECK(vkAllocateDescriptorSets(_renderer->_device, &allocateInfo, &descriptorSet));
+
+            _descriptorSets.push_back(descriptorSet);
+        }
     }
 
 

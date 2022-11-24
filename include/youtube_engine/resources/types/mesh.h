@@ -4,10 +4,16 @@
 
 #pragma once
 #include <youtube_engine/resources/types/resource.h>
+#include <youtube_engine/resources/types/image.h>
+#include <youtube_engine/resources/types/material.h>
+
 #include <youtube_engine/rendering/types.h>
+#include <youtube_engine/rendering/texture.h>
 #include <youtube_engine/rendering/buffer.h>
 
 #include <vector>
+#include <unordered_map>
+#include <string>
 
 struct aiScene;
 struct aiNode;
@@ -18,6 +24,12 @@ namespace OZZ {
         Submesh(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices);
         ~Submesh();
 
+        std::weak_ptr<Image> SetTexture(Texture::Slot textureSlot, std::shared_ptr<Image>&& image);
+        std::weak_ptr<Image> GetTexture(Texture::Slot textureSlot);
+
+        std::weak_ptr<Material> SetMaterial(std::shared_ptr<Material>&& material);
+        std::weak_ptr<Material> GetMaterial();
+
         std::shared_ptr<IndexBuffer> _indexBuffer { nullptr };
         std::shared_ptr<VertexBuffer> _vertexBuffer { nullptr };
     private:
@@ -26,8 +38,8 @@ namespace OZZ {
     private:
         std::vector<uint32_t> _indices;
         std::vector<Vertex> _vertices;
-        std::vector<std::string> _textures;
-
+        std::unordered_map<Texture::Slot, std::shared_ptr<Image>> _textures;
+        std::shared_ptr<Material> _material { nullptr };
     };
 
     struct Mesh : public Resource {

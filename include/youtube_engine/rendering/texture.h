@@ -11,6 +11,9 @@ namespace OZZ {
         enum class Slot {
             UNKNOWN,
             DIFFUSE0,
+            DIFFUSE1,
+            DIFFUSE2,
+            DIFFUSE3,
         };
 
     public:
@@ -25,8 +28,5 @@ namespace OZZ {
         [[nodiscard]] virtual std::pair<uint32_t, uint32_t> GetSize() const = 0;
 
         [[nodiscard]] virtual int *GetHandle() const = 0;
-
-    public:
-        Slot TextureSlot { Slot::UNKNOWN };
     };
 }

@@ -17,14 +17,14 @@ namespace OZZ {
 
     class ResourceManager {
     public:
-        template <typename ResourceType>
-        std::shared_ptr<ResourceType> Load(const Path& path) {
+        template <typename ResourceType, typename ...Args>
+        std::shared_ptr<ResourceType> Load(const Path& path, Args&& ...args) {
             static_assert(std::is_base_of<Resource, ResourceType>::value, "ResourceType must inherit from Resource");
 
             auto res = _resources[path.string()].lock();
             if(!res) {
                 // assuming constructor loads resource
-                _resources[path.string()] = res = std::make_shared<ResourceType>(path);
+                _resources[path.string()] = res = std::make_shared<ResourceType>(path, std::forward<Args>(args)...);
             }
 
             auto return_value = std::dynamic_pointer_cast<ResourceType>(res);

@@ -14,7 +14,8 @@ namespace OZZ {
         enum class Type {
             UNDEFINED,
             MESH,
-            SHADER
+            SHADER,
+            IMAGE
         };
 
         explicit Resource(const Path& path, Type type) : _guid(path.string()), _type(type) {}

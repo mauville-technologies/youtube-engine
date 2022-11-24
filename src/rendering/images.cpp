@@ -12,7 +12,6 @@ namespace OZZ {
         Path texturePath = Filesystem::GetAssetPath() /= filePath;
         stbi_set_flip_vertically_on_load(flipVertical);
 
-
         auto image = stbi_load(texturePath.string().c_str(), &_width, &_height, &_channels, STBI_rgb_alpha);
 
         if (!image) {
@@ -29,6 +28,29 @@ namespace OZZ {
         stbi_image_free(image);
 
         updateColorType();
+        _valid = true;
+    }
+
+    ImageData::ImageData(char *fileData, uint32_t fileLength, bool flipVertical) {
+        stbi_set_flip_vertically_on_load(flipVertical);
+
+        auto image = stbi_load_from_memory((const stbi_uc*)fileData, static_cast<int>(fileLength), &_width, &_height, &_channels, STBI_rgb_alpha);
+
+        if (!image) {
+            std::cout << "Error loading image from binary data!" << std::endl;
+            _valid = false;
+            return;
+        }
+
+        _channels = 4;
+        _data.resize(_width * _height * _channels);
+
+        std::memcpy(_data.data(), image, _width * _height * _channels);
+
+        stbi_image_free(image);
+
+        updateColorType();
+        _valid = true;
     }
 
     ImageData::ImageData(uint32_t width, uint32_t height, glm::vec4 color) { // NOLINT
@@ -66,6 +88,7 @@ namespace OZZ {
                 _colorType = ColorType::UNSIGNED_CHAR3;
         }
     }
+
 
 
 }
