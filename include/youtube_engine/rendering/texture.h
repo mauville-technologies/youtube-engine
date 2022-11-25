@@ -8,15 +8,6 @@
 namespace OZZ {
     class Texture {
     public:
-        enum class Slot {
-            UNKNOWN,
-            DIFFUSE0,
-            DIFFUSE1,
-            DIFFUSE2,
-            DIFFUSE3,
-        };
-
-    public:
         virtual ~Texture() = default;
 
         virtual void Bind() = 0;

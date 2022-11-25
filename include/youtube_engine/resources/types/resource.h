@@ -20,6 +20,8 @@ namespace OZZ {
 
         explicit Resource(const Path& path, Type type) : _guid(path.string()), _type(type) {}
         virtual ~Resource() = default;
+
+        [[nodiscard]] GUID GetID() const { return _guid; }
     private:
         GUID _guid;
         Type _type;

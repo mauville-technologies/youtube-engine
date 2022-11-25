@@ -22,9 +22,7 @@ namespace OZZ {
     protected:
         Scene* GetScene() { return _currentScene.get(); }
         virtual void PhysicsUpdate(float deltaTime) {};
-
         virtual void Update(float deltaTime) {};
-        virtual void Render() {};
         virtual void OnExit() {};
 
     private:

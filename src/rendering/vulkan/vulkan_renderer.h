@@ -8,6 +8,7 @@
 #include <youtube_engine/rendering/renderer.h>
 #include <vector>
 #include <array>
+
 #include "vulkan_includes.h"
 
 namespace OZZ {
@@ -22,6 +23,8 @@ namespace OZZ {
 
         VkFence RenderFence { VK_NULL_HANDLE };
         uint32_t SwapchainImageIndex { 0 };
+
+        std::shared_ptr<UniformBuffer> CameraData { nullptr };
     };
 
     class VulkanRenderer : public Renderer {
@@ -37,9 +40,8 @@ namespace OZZ {
         void Init(RendererSettings settings) override;
         void Shutdown() override;
         void BeginFrame() override;
+        void RenderFrame(const SceneParams& sceneParams, const std::vector<RenderableObject>& objects) override;
         void EndFrame() override;
-
-        void DrawIndexBuffer(IndexBuffer* buffer) override;
 
         void WaitForIdle() override;
 
@@ -64,7 +66,7 @@ namespace OZZ {
         void createSyncStructures();
 
         FrameData& getCurrentFrame();
-
+        uint32_t getCurrentFrameNumber();
     private:
 
         //TODO: TEMPORARY FRAME NUMBER
@@ -122,6 +124,8 @@ namespace OZZ {
          */
 
         FrameData _frames[MAX_FRAMES_IN_FLIGHT];
+
+
     };
 }
 

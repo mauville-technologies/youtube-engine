@@ -9,6 +9,8 @@
 
 namespace OZZ {
     class Scene {
+        friend class Game;
+
     public:
         Scene();
         ~Scene();
@@ -17,6 +19,9 @@ namespace OZZ {
         void RemoveEntity(Entity *entity);
 
     private:
+
+        void Draw();
+
         entt::registry _registry{};
         std::vector<std::unique_ptr<Entity>> _entities;
     };

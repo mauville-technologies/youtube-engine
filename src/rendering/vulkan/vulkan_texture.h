@@ -9,6 +9,7 @@
 
 namespace OZZ {
     class VulkanTexture : public Texture {
+        friend class VulkanRenderer;
     public:
         explicit VulkanTexture(VulkanRenderer* renderer);
         ~VulkanTexture() override;

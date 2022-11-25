@@ -22,6 +22,7 @@ namespace OZZ {
     }
 
     Game::~Game() {
+        _currentScene.reset();
         shutdownServices();
     }
 
@@ -46,7 +47,8 @@ namespace OZZ {
             // Update physics
             ServiceLocator::GetRenderer()->BeginFrame();
 
-            Render();
+            _currentScene->Draw();
+
             // Draw
             ServiceLocator::GetRenderer()->EndFrame();
         }

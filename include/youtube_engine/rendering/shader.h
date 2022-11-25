@@ -6,73 +6,13 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
+
 #include <youtube_engine/rendering/buffer.h>
 #include <youtube_engine/rendering/texture.h>
+#include <youtube_engine/rendering/types.h>
 
 namespace OZZ {
     struct ShaderResource {
-
-        enum class ResourceName {
-            Unknown,
-            ViewOptions,
-            Diffuse0,
-            Diffuse1,
-        };
-
-        enum class ResourceType {
-            Unknown,
-            PushConstant,
-            Uniform,
-            Sampler
-        };
-
-        enum class MemberType {
-            Unknown,
-            Void,
-            Boolean,
-            SByte,
-            UByte,
-            Short,
-            UShort,
-            Int,
-            UInt,
-            Int64,
-            UInt64,
-            AtomicCounter,
-            Half,
-            Float,
-            Double,
-            Struct,
-            Image,
-            SampledImage,
-            Sampler,
-            AccelerationStructure,
-            RayQuery,
-            // These types are derived types.
-            Vec2,
-            Vec3,
-            Vec4,
-            Mat2,
-            Mat3,
-            Mat4
-        };
-
-        static ResourceName ResourceNameFromString(const std::string& str) {
-            if (str == "ViewOptions") {
-                return ResourceName::ViewOptions;
-            }
-
-            if (str == "Diffuse0") {
-                return ResourceName::Diffuse0;
-            }
-
-            if (str == "Diffuse1") {
-                return ResourceName::Diffuse1;
-            }
-
-            return ResourceName::Unknown;
-        }
-
         struct Member {
             std::string Name { };
             uint64_t Size { 0 };
@@ -83,18 +23,18 @@ namespace OZZ {
         uint32_t Set { 0 };
         uint32_t Binding { 0 };
         std::string Name {};
-        ShaderResource::ResourceType Type { ResourceType::Unknown };
+        ResourceType Type { ResourceType::Unknown };
         uint64_t Size { 0 };
         std::vector<Member> Members {};
     };
 
     struct ShaderData {
-        std::unordered_map<ShaderResource::ResourceName, ShaderResource> Resources;
+        std::unordered_map<ResourceName, ShaderResource> Resources;
 
         static ShaderData Merge(const ShaderData& first, const ShaderData& second) {
             ShaderData newShaderData {};
 
-            std::unordered_map<ShaderResource::ResourceName, ShaderResource> _mergedResources {};
+            std::unordered_map<ResourceName, ShaderResource> _mergedResources {};
 
             // Merge Resources
             for (const auto& [k, v] : first.Resources) {

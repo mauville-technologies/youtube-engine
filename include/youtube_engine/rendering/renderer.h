@@ -4,11 +4,13 @@
 //
 
 #pragma once
-#include <string>
-#include <memory>
 #include <youtube_engine/rendering/shader.h>
 #include <youtube_engine/rendering/buffer.h>
 #include <youtube_engine/rendering/texture.h>
+#include <youtube_engine/rendering/renderables.h>
+
+#include <string>
+#include <memory>
 
 namespace OZZ {
     struct RendererSettings {
@@ -21,10 +23,10 @@ namespace OZZ {
         virtual void Shutdown() = 0;
 
         virtual void BeginFrame() = 0;
+        virtual void RenderFrame(const SceneParams& sceneParams, const std::vector<RenderableObject>& objects) = 0;
         virtual void EndFrame() = 0;
 
         virtual ~Renderer() = default;
-        virtual void DrawIndexBuffer(IndexBuffer* buffer) = 0;
 
         virtual void WaitForIdle() = 0;
 

@@ -37,15 +37,16 @@ namespace OZZ {
 
         vkDestroySwapchainKHR(_device, _swapchain, nullptr);
 
-        vmaDestroyAllocator(_allocator);
-
         for (auto& frame : _frames) {
+            frame.CameraData.reset();
             vkDestroySemaphore(_device, frame.PresentSemaphore, nullptr);
             vkDestroySemaphore(_device, frame.RenderSemaphore, nullptr);
             vkDestroyFence(_device, frame.RenderFence, nullptr);
 
             vkDestroyCommandPool(_device, frame.CommandPool, nullptr);
         }
+
+        vmaDestroyAllocator(_allocator);
 
         vkDestroyDevice(_device, nullptr);
         vkDestroySurfaceKHR(_instance, _surface, nullptr);
@@ -105,10 +106,140 @@ namespace OZZ {
         vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     }
 
+    void VulkanRenderer::RenderFrame(const SceneParams &sceneParams, const vector<RenderableObject> &objects) {
+        auto& currentFrame = getCurrentFrame();
+        auto currentFrameNumber = getCurrentFrameNumber();
+
+        // Ensure there's a uniform buffer to hold camera data
+        if (!currentFrame.CameraData) {
+            currentFrame.CameraData = CreateUniformBuffer();
+        }
+
+        // Upload the camera data to the buffer
+        // Usually I would avoid casting away the const -- but I did it here to save effort in making overloads
+        currentFrame.CameraData->UploadData(const_cast<int*>(reinterpret_cast<const int*>(&sceneParams.Camera)), sizeof(sceneParams.Camera));
+
+        // Render all the objects
+        std::string lastMaterial {};
+        for (auto& object : objects) {
+            auto mesh = object.Mesh.lock();
+
+            if (mesh) {
+                for (auto &submesh: mesh->GetSubmeshes()) {
+                    auto material = submesh.GetMaterial().lock();
+                    if (!material) {
+                        std::cout << "Submesh doesn't have a material assigned!" << std::endl;
+                        continue;
+                    }
+
+                    auto shader = material->GetShader().lock();
+                    if (!shader) {
+                        std::cout << "Material doesn't have a shader assigned!" << std::endl;
+                        continue;
+                    }
+
+                    std::vector<VkWriteDescriptorSet> writeSets {};
+
+                    auto shaderData = shader->GetShaderData();
+
+                    if (lastMaterial != material->GetID()) {
+                        lastMaterial = material->GetID();
+
+                        //TODO: Update descriptor set with camera data
+                        if (shaderData.Resources.contains(ResourceName::CameraData)) {
+                            auto cameraData = shaderData.Resources[ResourceName::CameraData];
+
+                            auto *buffer = dynamic_cast<VulkanUniformBuffer *>(currentFrame.CameraData.get());
+                            auto descriptorSet = dynamic_cast<VulkanShader *>(shader.get())->GetDescriptorSet(currentFrameNumber,
+                                    cameraData.Set);
+
+                            VkDescriptorBufferInfo descriptorBufferInfo{};
+                            descriptorBufferInfo.buffer = buffer->_buffer->Buffer;
+                            descriptorBufferInfo.offset = 0;
+                            descriptorBufferInfo.range = buffer->_bufferSize;
+
+                            auto writeSet = VulkanUtilities::WriteDescriptorSetUniformBuffer(descriptorSet,
+                                                                                             cameraData.Binding,
+                                                                                             &descriptorBufferInfo);
+                            writeSets.push_back(writeSet);
+                        }
+                    }
+
+                    // Bind all textures
+                    for (int i = (int)ResourceName::Diffuse0; i < (int)ResourceName::EndTextures; i++) {
+                        if (shader->GetShaderData().Resources.contains((ResourceName)i)) {
+                            auto textureData = shader->GetShaderData().Resources.at((ResourceName)i);
+                            auto descriptorSet = dynamic_cast<VulkanShader*>(shader.get())->GetDescriptorSet(currentFrameNumber, textureData.Set);
+
+                            // Get texture
+                            auto texture = submesh.GetTexture((ResourceName)i).lock();
+                            if (!texture) {
+                                continue;
+                            }
+
+                            auto vulkanTexture = texture->GetTexture().lock();
+                            if (!vulkanTexture) {
+                                continue;
+                            }
+
+                            auto renderTexture = dynamic_cast<VulkanTexture*>(vulkanTexture.get());
+                            VkDescriptorImageInfo imageBufferInfo {
+                                    .sampler = renderTexture->_sampler,
+                                    .imageView = renderTexture->_imageView,
+                                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                            };
+
+                            writeSets.push_back(VulkanUtilities::WriteDescriptorSetTexture(descriptorSet, textureData.Binding, &imageBufferInfo));
+                        }
+                    }
+
+                    // Upload model matrix
+                    auto modelBuffer = mesh->GetModelBuffer().lock();
+
+                    if (!modelBuffer) {
+                        std::cout << "Mesh model buffer is not valid!" << std::endl;
+                        continue;
+                    }
+
+                    modelBuffer->UploadData(const_cast<int *>(reinterpret_cast<const int*>(&object.Transform)), sizeof(ModelObject));
+
+                    if (shader->GetShaderData().Resources.contains(ResourceName::ModelData)) {
+                        auto modelData = shader->GetShaderData().Resources.at(ResourceName::ModelData);
+                        auto descriptorSet = dynamic_cast<VulkanShader *>(shader.get())->GetDescriptorSet(currentFrameNumber,
+                                                                                                          modelData.Set);
+                        auto *buffer = dynamic_cast<VulkanUniformBuffer *>(mesh->GetModelBuffer().lock().get());
+
+                        VkDescriptorBufferInfo descriptorBufferInfo{};
+                        descriptorBufferInfo.buffer = buffer->_buffer->Buffer;
+                        descriptorBufferInfo.offset = 0;
+                        descriptorBufferInfo.range = buffer->_bufferSize;
+
+                        writeSets.push_back(
+                                VulkanUtilities::WriteDescriptorSetUniformBuffer(descriptorSet, modelData.Binding,
+                                                                                 &descriptorBufferInfo));
+                    }
+
+                    if (!writeSets.empty()) {
+                        vkUpdateDescriptorSets(_device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0,
+                                               nullptr);
+                    }
+
+                    // Bind and draw the things
+                    shader->Bind();
+
+                    submesh._indexBuffer->Bind();
+                    submesh._vertexBuffer->Bind();
+                    vkCmdDrawIndexed(currentFrame.MainCommandBuffer, submesh._indexBuffer->GetCount(), 1, 0, 0, 0);
+                }
+            }
+        }
+    }
+
     void VulkanRenderer::EndFrame() {
         auto cmd = getCurrentFrame().MainCommandBuffer;
         vkCmdEndRenderPass(cmd);
         VK_CHECK(vkEndCommandBuffer(cmd));
+
 
         VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
 
@@ -146,12 +277,6 @@ namespace OZZ {
 
         _frameNumber++;
     }
-
-
-    void VulkanRenderer::DrawIndexBuffer(IndexBuffer *buffer) {
-        vkCmdDrawIndexed(getCurrentFrame().MainCommandBuffer, buffer->GetCount(), 1, 0, 0, 0);
-    }
-
 
     void VulkanRenderer::WaitForIdle() {
         vkDeviceWaitIdle(_device);
@@ -502,6 +627,11 @@ namespace OZZ {
     }
 
     FrameData &VulkanRenderer::getCurrentFrame() {
-        return _frames[_frameNumber % MAX_FRAMES_IN_FLIGHT];
+        return _frames[getCurrentFrameNumber()];
     }
+
+    uint32_t VulkanRenderer::getCurrentFrameNumber() {
+        return _frameNumber % MAX_FRAMES_IN_FLIGHT;
+    };
+
 }

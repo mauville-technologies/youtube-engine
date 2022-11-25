@@ -50,27 +50,27 @@ namespace OZZ {
         // Push Constants
         for (const auto& res : resources.push_constant_buffers) {
 
-            auto resource = BuildShaderResource(ShaderResource::ResourceType::PushConstant, res, shader);
-            data.Resources[ShaderResource::ResourceNameFromString(resource.Name)] = resource;
+            auto resource = BuildShaderResource(ResourceType::PushConstant, res, shader);
+            data.Resources[ResourceNameFromString(resource.Name)] = resource;
         }
 
         // Uniforms
         for (const auto& res : resources.uniform_buffers) {
-            auto resource = BuildShaderResource(ShaderResource::ResourceType::Uniform, res, shader);
-            data.Resources[ShaderResource::ResourceNameFromString(resource.Name)] = resource;
+            auto resource = BuildShaderResource(ResourceType::Uniform, res, shader);
+            data.Resources[ResourceNameFromString(resource.Name)] = resource;
 
         }
 
         // Textures
         for (const auto& res : resources.sampled_images) {
-            auto resource = BuildShaderResource(ShaderResource::ResourceType::Sampler, res, shader);
-            data.Resources[ShaderResource::ResourceNameFromString(resource.Name)] = resource;
+            auto resource = BuildShaderResource(ResourceType::Sampler, res, shader);
+            data.Resources[ResourceNameFromString(resource.Name)] = resource;
         }
 
         return data;
     }
 
-    ShaderResource VulkanUtilities::BuildShaderResource(ShaderResource::ResourceType type, spirv_cross::Resource res,
+    ShaderResource VulkanUtilities::BuildShaderResource(ResourceType type, spirv_cross::Resource res,
                                                         const spirv_cross::CompilerGLSL &shader) {
         const auto& buffer_type = shader.get_type(res.base_type_id);
 
@@ -82,7 +82,7 @@ namespace OZZ {
         resource.Set = shader.get_decoration(res.id, spv::DecorationDescriptorSet);
         resource.Binding = shader.get_decoration(res.id, spv::DecorationBinding);
 
-        if (type != ShaderResource::ResourceType::Sampler) {
+        if (type != ResourceType::Sampler) {
             resource.Size = shader.get_declared_struct_size(buffer_type);
 
             auto memberRanges = shader.get_active_buffer_ranges(res.id);
@@ -97,30 +97,30 @@ namespace OZZ {
 
                 // Derive the type
                 auto memberType = shader.get_type(buffer_type.member_types[i]);
-                member.Type = static_cast<const ShaderResource::MemberType>(memberType.basetype);
+                member.Type = static_cast<const MemberType>(memberType.basetype);
 
                 // Vectors and Matrices are special, check for them
-                if (member.Type == ShaderResource::MemberType::Float) {
+                if (member.Type == MemberType::Float) {
                     if (memberType.vecsize != 1) {
                         bool isMatrix = memberType.columns == memberType.vecsize;
 
                         switch (memberType.vecsize) {
                             case 2: {
                                 member.Type = isMatrix
-                                            ? ShaderResource::MemberType::Mat2
-                                            : ShaderResource::MemberType::Vec2;
+                                            ? MemberType::Mat2
+                                            : MemberType::Vec2;
                                 break;
                             }
                             case 3: {
                                 member.Type = isMatrix
-                                              ? ShaderResource::MemberType::Mat3
-                                              : ShaderResource::MemberType::Vec3;
+                                              ? MemberType::Mat3
+                                              : MemberType::Vec3;
                                 break;
                             }
                             case 4: {
                                 member.Type = isMatrix
-                                              ? ShaderResource::MemberType::Mat4
-                                              : ShaderResource::MemberType::Vec4;
+                                              ? MemberType::Mat4
+                                              : MemberType::Vec4;
                                 break;
                             }
                         }
@@ -132,5 +132,37 @@ namespace OZZ {
             }
         }
         return resource;
+    }
+
+    VkWriteDescriptorSet
+    VulkanUtilities::WriteDescriptorSetTexture(VkDescriptorSet descriptorSet, uint32_t binding, VkDescriptorImageInfo* imageBufferInfo) {
+
+        VkWriteDescriptorSet descriptorSetWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        descriptorSetWrite.dstSet = descriptorSet;
+        descriptorSetWrite.dstBinding = binding;
+        descriptorSetWrite.dstArrayElement = 0;
+        descriptorSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorSetWrite.descriptorCount = 1;
+        descriptorSetWrite.pImageInfo = imageBufferInfo;
+
+        return descriptorSetWrite;
+    }
+
+    VkWriteDescriptorSet
+    VulkanUtilities::WriteDescriptorSetUniformBuffer(VkDescriptorSet descriptorSet, uint32_t binding,
+                                                     VkDescriptorBufferInfo* descriptorBufferInfo) {
+
+        VkWriteDescriptorSet descriptorSetWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        descriptorSetWrite.dstSet = descriptorSet;
+        descriptorSetWrite.dstBinding = binding;
+        descriptorSetWrite.dstArrayElement = 0;
+        descriptorSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorSetWrite.descriptorCount = 1;
+
+        // THIS IS THE CHANGE
+        descriptorSetWrite.pBufferInfo = descriptorBufferInfo;
+        descriptorSetWrite.pImageInfo = nullptr;
+        descriptorSetWrite.pTexelBufferView = nullptr;
+        return descriptorSetWrite;
     }
 }

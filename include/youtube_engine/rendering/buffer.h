@@ -33,6 +33,6 @@ namespace OZZ {
     public:
         virtual ~UniformBuffer() = default;
         virtual void Bind() = 0;
-        virtual void UploadData(const UniformBufferObject&) = 0;
+        virtual void UploadData(int* data, uint32_t size) = 0;
     };
 }

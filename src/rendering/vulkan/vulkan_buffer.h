@@ -68,15 +68,14 @@ namespace OZZ {
     };
 
     class VulkanUniformBuffer : public UniformBuffer {
+        friend class VulkanRenderer;
     public:
         explicit VulkanUniformBuffer(VulkanRenderer* renderer);
         ~VulkanUniformBuffer() override;
 
-        VkDescriptorSet GetDescriptorSet(VkDescriptorSetLayout* descriptorSetLayout);
-        void ResetDescriptorSet();
         void Bind() override;
 
-        void UploadData(const UniformBufferObject &object) override;
+        void UploadData(int* data, uint32_t size) override;
     private:
         VulkanRenderer* _renderer;
         VkDescriptorSet _descriptorSet { VK_NULL_HANDLE };

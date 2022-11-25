@@ -24,11 +24,11 @@ namespace OZZ {
         Submesh(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices);
         ~Submesh();
 
-        std::weak_ptr<Image> SetTexture(Texture::Slot textureSlot, std::shared_ptr<Image>&& image);
-        std::weak_ptr<Image> GetTexture(Texture::Slot textureSlot);
+        std::weak_ptr<Image> SetTexture(ResourceName textureSlot, std::shared_ptr<Image>&& image);
+        std::weak_ptr<Image> GetTexture(ResourceName textureSlot);
 
         std::weak_ptr<Material> SetMaterial(std::shared_ptr<Material>&& material);
-        std::weak_ptr<Material> GetMaterial();
+        [[nodiscard]] std::weak_ptr<Material> GetMaterial() const;
 
         std::shared_ptr<IndexBuffer> _indexBuffer { nullptr };
         std::shared_ptr<VertexBuffer> _vertexBuffer { nullptr };
@@ -38,7 +38,7 @@ namespace OZZ {
     private:
         std::vector<uint32_t> _indices;
         std::vector<Vertex> _vertices;
-        std::unordered_map<Texture::Slot, std::shared_ptr<Image>> _textures;
+        std::unordered_map<ResourceName, std::shared_ptr<Image>> _textures;
         std::shared_ptr<Material> _material { nullptr };
     };
 
@@ -53,10 +53,16 @@ namespace OZZ {
             unload();
         }
 
-        std::vector<Submesh> _submeshes {};
+        std::vector<Submesh>& GetSubmeshes() { return _submeshes; }
+        [[nodiscard]] std::weak_ptr<UniformBuffer> GetModelBuffer() const { return _model; }
+
     private:
+        std::vector<Submesh> _submeshes {};
         Path _directory {};
 
+        std::shared_ptr<UniformBuffer> _model;
+
+    private:
         void load(const Path& path);
         void unload();
 

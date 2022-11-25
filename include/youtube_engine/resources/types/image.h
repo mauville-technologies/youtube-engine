@@ -16,6 +16,7 @@ namespace OZZ {
 
         ~Image() override;
 
+        std::weak_ptr<Texture> GetTexture() { return _texture; }
     private:
         void load(const Path& path);
         void unload();

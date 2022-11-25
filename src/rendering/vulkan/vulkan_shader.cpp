@@ -29,8 +29,14 @@ namespace OZZ {
     }
 
     void VulkanShader::Bind() {
-        vkCmdBindDescriptorSets(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout,
-                                0, static_cast<uint32_t>(_descriptorSets.size()), _descriptorSets.data(), 0, nullptr);
+
+        if (!_descriptorSets.empty()) {
+            vkCmdBindDescriptorSets(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    _pipelineLayout,
+                                    0, static_cast<uint32_t>(_descriptorSets[_renderer->getCurrentFrameNumber()].size()),
+                                    _descriptorSets[_renderer->getCurrentFrameNumber()].data(), 0,
+                                    nullptr);
+        }
 
         vkCmdBindPipeline(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
 
@@ -127,6 +133,13 @@ namespace OZZ {
         vkDestroyShaderModule(_renderer->_device, vertexShaderModule, nullptr);
     }
 
+    VkDescriptorSet VulkanShader::GetDescriptorSet(uint8_t frameNumber, uint32_t index) const {
+        if (frameNumber < MAX_FRAMES_IN_FLIGHT && index < _descriptorSets.size()) {
+            return _descriptorSets[frameNumber][index];
+        }
+        return VK_NULL_HANDLE;
+    }
+
     void VulkanShader::cleanPipeline() {
         _texturesDescriptorSet = VK_NULL_HANDLE;
 
@@ -156,12 +169,12 @@ namespace OZZ {
             }
 
             switch (resource.Type) {
-                case ShaderResource::ResourceType::PushConstant:
+                case ResourceType::PushConstant:
                     break;
-                case ShaderResource::ResourceType::Uniform:
+                case ResourceType::Uniform:
                     _descriptorSetDescriptions[resource.Set].push_back(GetUniformBufferLayoutBinding(resource.Binding));
                     break;
-                case ShaderResource::ResourceType::Sampler:
+                case ResourceType::Sampler:
                     _descriptorSetDescriptions[resource.Set].push_back(GetTextureLayoutBinding(resource.Binding));
                     break;
                 default:
@@ -181,18 +194,23 @@ namespace OZZ {
             _descriptorSetLayouts.push_back(currentLayout);
         }
 
-        for (const auto& layout : _descriptorSetLayouts) {
-            VkDescriptorSet descriptorSet { VK_NULL_HANDLE };
+        for (auto i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            std::vector<VkDescriptorSet> frameDescriptorSets {};
+            for (const auto &layout: _descriptorSetLayouts) {
+                VkDescriptorSet descriptorSet{VK_NULL_HANDLE};
 
-            VkDescriptorSetAllocateInfo allocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-            allocateInfo.descriptorPool = _renderer->_descriptorPool;
-            allocateInfo.descriptorSetCount = 1;
-            allocateInfo.pSetLayouts = &layout;
-            VK_CHECK(vkAllocateDescriptorSets(_renderer->_device, &allocateInfo, &descriptorSet));
+                VkDescriptorSetAllocateInfo allocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+                allocateInfo.descriptorPool = _renderer->_descriptorPool;
+                allocateInfo.descriptorSetCount = 1;
+                allocateInfo.pSetLayouts = &layout;
+                VK_CHECK(vkAllocateDescriptorSets(_renderer->_device, &allocateInfo, &descriptorSet));
+                frameDescriptorSets.push_back(descriptorSet);
+            }
 
-            _descriptorSets.push_back(descriptorSet);
+            _descriptorSets.push_back(frameDescriptorSets);
         }
     }
+
 
 
 }

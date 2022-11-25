@@ -8,15 +8,17 @@ layout (location = 3) in vec3 vNormal;
 layout (location = 0) out vec4 outColour;
 layout (location = 1) out vec2 texCoord;
 
-layout(set = 0, binding = 0) uniform ViewOptions {
+layout(set = 0, binding = 0) uniform ModelData {
     mat4 model;
+} mod;
+
+layout(set = 0, binding = 1) uniform CameraData {
     mat4 view;
     mat4 proj;
-} ubo;
+} camera;
 
 void main() {
-
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(vPosition, 1.0f);
+    gl_Position = camera.proj * camera.view * mod.model * vec4(vPosition, 1.0f);
 
     outColour = vColour;
     texCoord = vTexCoord;

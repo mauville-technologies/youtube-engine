@@ -35,9 +35,18 @@ namespace OZZ {
         _directory = meshPath.parent_path();
 
         processNode(scene->mRootNode, scene);
+
+        _model = ServiceLocator::GetRenderer()->CreateUniformBuffer();
+
+        ModelObject mod {
+            .model = glm::mat4{1.f}
+        };
+
+        _model->UploadData(reinterpret_cast<int*>(&mod), sizeof(ModelObject));
     }
 
     void Mesh::unload() {
+        std::cout << "Mesh resource being cleared" << std::endl;
         _submeshes.clear();
     }
 
@@ -61,7 +70,7 @@ namespace OZZ {
 
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
-        std::unordered_map<Texture::Slot, std::shared_ptr<Image>> textures;
+        std::unordered_map<ResourceName, std::shared_ptr<Image>> textures;
 
         // process vertices
         for(unsigned int i = 0; i < mesh->mNumVertices; i++) {
@@ -92,7 +101,7 @@ namespace OZZ {
 
             // Read Diffuse Textures
             for(unsigned int i = 0; i < mat->GetTextureCount(aiTextureType_DIFFUSE); i++) {
-                auto textureSlot = static_cast<Texture::Slot>((int)Texture::Slot::DIFFUSE0 + i);
+                auto textureSlot = static_cast<ResourceName>((int)ResourceName::Diffuse0 + i);
 
                 aiString str;
                 mat->GetTexture(aiTextureType_DIFFUSE, i, &str);
@@ -107,7 +116,11 @@ namespace OZZ {
                     }
                 } else {
                     auto imageData = ImageData(str.C_Str());
-                    submesh.SetTexture(textureSlot , ServiceLocator::GetResourceManager()->Load<Image>(str.C_Str(), imageData));
+
+                    if (imageData.IsValid()) {
+                        submesh.SetTexture(textureSlot,
+                                           ServiceLocator::GetResourceManager()->Load<Image>(str.C_Str(), imageData));
+                    }
                 }
             }
 
@@ -138,12 +151,12 @@ namespace OZZ {
         freeResources();
     }
 
-    std::weak_ptr<Image> Submesh::SetTexture(Texture::Slot textureSlot, std::shared_ptr<Image> &&image) {
+    std::weak_ptr<Image> Submesh::SetTexture(ResourceName textureSlot, std::shared_ptr<Image> &&image) {
         _textures[textureSlot] = image;
         return _textures[textureSlot];
     }
 
-    std::weak_ptr<Image> Submesh::GetTexture(Texture::Slot textureSlot) {
+    std::weak_ptr<Image> Submesh::GetTexture(ResourceName textureSlot) {
         return _textures[textureSlot];
     }
 
@@ -152,7 +165,7 @@ namespace OZZ {
         return _material;
     }
 
-    std::weak_ptr<Material> Submesh::GetMaterial() {
+    std::weak_ptr<Material> Submesh::GetMaterial() const {
         return _material;
     }
 
@@ -162,8 +175,6 @@ namespace OZZ {
 
         _vertexBuffer = ServiceLocator::GetRenderer()->CreateVertexBuffer();
         _vertexBuffer->UploadData(_vertices);
-
-        // TODO: LOAD TEXTURES USING RESOURCE MANAGER
     }
 
     void Submesh::freeResources() {
@@ -172,8 +183,7 @@ namespace OZZ {
 
         _indices.clear();
         _vertices.clear();
-
-        // TODO: FREE TEXTURES USING RESOURCE MANAGER
+        _textures.clear();
     }
 
 }
