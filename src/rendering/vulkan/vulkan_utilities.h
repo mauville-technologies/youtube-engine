@@ -29,8 +29,8 @@ namespace OZZ {
         static bool LoadShaderModule(const std::string& filePath, VkDevice device, VkShaderModule &outShaderModule, ShaderData& outShaderData);
         static ShaderResource BuildShaderResource(ResourceType type, spirv_cross::Resource res, const spirv_cross::CompilerGLSL& shader);
         static ShaderData LoadShaderData(const spirv_cross::CompilerGLSL& shader);
-        static VkWriteDescriptorSet WriteDescriptorSetTexture(VkDescriptorSet descriptorSet, uint32_t binding, VkDescriptorImageInfo* texture);
-        static VkWriteDescriptorSet WriteDescriptorSetUniformBuffer(VkDescriptorSet descriptorSet, uint32_t binding, VkDescriptorBufferInfo* descriptorBufferInfo);
+        static VkWriteDescriptorSet WriteDescriptorSetTexture(VkDescriptorSet& descriptorSet, uint32_t binding, VkDescriptorImageInfo* texture);
+        static VkWriteDescriptorSet WriteDescriptorSetUniformBuffer(VkDescriptorSet& descriptorSet, uint32_t binding, VkDescriptorBufferInfo* descriptorBufferInfo);
     };
 }
 

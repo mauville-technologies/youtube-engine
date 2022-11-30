@@ -29,15 +29,6 @@ namespace OZZ {
     }
 
     void VulkanShader::Bind() {
-
-        if (!_descriptorSets.empty()) {
-            vkCmdBindDescriptorSets(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    _pipelineLayout,
-                                    0, static_cast<uint32_t>(_descriptorSets[_renderer->getCurrentFrameNumber()].size()),
-                                    _descriptorSets[_renderer->getCurrentFrameNumber()].data(), 0,
-                                    nullptr);
-        }
-
         vkCmdBindPipeline(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
 
         auto [width, height] = ServiceLocator::GetWindow()->GetWindowExtents();
@@ -133,16 +124,15 @@ namespace OZZ {
         vkDestroyShaderModule(_renderer->_device, vertexShaderModule, nullptr);
     }
 
-    VkDescriptorSet VulkanShader::GetDescriptorSet(uint8_t frameNumber, uint32_t index) const {
-        if (frameNumber < MAX_FRAMES_IN_FLIGHT && index < _descriptorSets.size()) {
-            return _descriptorSets[frameNumber][index];
+    VkDescriptorSetLayout VulkanShader::GetDescriptorSetLayout(uint32_t index) {
+        if (index < _descriptorSetLayouts.size()) {
+            return _descriptorSetLayouts[index];
         }
+
         return VK_NULL_HANDLE;
     }
 
     void VulkanShader::cleanPipeline() {
-        _texturesDescriptorSet = VK_NULL_HANDLE;
-
         if (_pipeline) {
             vkDestroyPipeline(_renderer->_device, _pipeline, nullptr);
         }
@@ -186,28 +176,13 @@ namespace OZZ {
         for (const auto& [key, bindings] : _descriptorSetDescriptions) {
             auto createDescriptorSetLayout = BuildDescriptorSetLayout(bindings);
 
+
             VkDescriptorSetLayout currentLayout { VK_NULL_HANDLE };
 
             VK_CHECK(vkCreateDescriptorSetLayout(_renderer->_device, &createDescriptorSetLayout, nullptr,
                                                  &currentLayout));
 
             _descriptorSetLayouts.push_back(currentLayout);
-        }
-
-        for (auto i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            std::vector<VkDescriptorSet> frameDescriptorSets {};
-            for (const auto &layout: _descriptorSetLayouts) {
-                VkDescriptorSet descriptorSet{VK_NULL_HANDLE};
-
-                VkDescriptorSetAllocateInfo allocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-                allocateInfo.descriptorPool = _renderer->_descriptorPool;
-                allocateInfo.descriptorSetCount = 1;
-                allocateInfo.pSetLayouts = &layout;
-                VK_CHECK(vkAllocateDescriptorSets(_renderer->_device, &allocateInfo, &descriptorSet));
-                frameDescriptorSets.push_back(descriptorSet);
-            }
-
-            _descriptorSets.push_back(frameDescriptorSets);
         }
     }
 

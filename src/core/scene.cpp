@@ -43,6 +43,7 @@ namespace OZZ {
         for (auto entity : renderableObjects) {
             RenderableObject ro {
                 .Mesh = renderableObjects.get<MeshComponent>(entity).GetMesh(),
+                .ModelBuffer = renderableObjects.get<MeshComponent>(entity).GetModelBuffer(),
                 .Transform = renderableObjects.get<TransformComponent>(entity).GetTransform()
             };
 

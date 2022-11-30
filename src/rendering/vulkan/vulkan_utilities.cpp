@@ -135,7 +135,7 @@ namespace OZZ {
     }
 
     VkWriteDescriptorSet
-    VulkanUtilities::WriteDescriptorSetTexture(VkDescriptorSet descriptorSet, uint32_t binding, VkDescriptorImageInfo* imageBufferInfo) {
+    VulkanUtilities::WriteDescriptorSetTexture(VkDescriptorSet& descriptorSet, uint32_t binding, VkDescriptorImageInfo* imageBufferInfo) {
 
         VkWriteDescriptorSet descriptorSetWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
         descriptorSetWrite.dstSet = descriptorSet;
@@ -149,7 +149,7 @@ namespace OZZ {
     }
 
     VkWriteDescriptorSet
-    VulkanUtilities::WriteDescriptorSetUniformBuffer(VkDescriptorSet descriptorSet, uint32_t binding,
+    VulkanUtilities::WriteDescriptorSetUniformBuffer(VkDescriptorSet& descriptorSet, uint32_t binding,
                                                      VkDescriptorBufferInfo* descriptorBufferInfo) {
 
         VkWriteDescriptorSet descriptorSetWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};

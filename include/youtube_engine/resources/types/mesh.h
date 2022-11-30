@@ -54,19 +54,17 @@ namespace OZZ {
         }
 
         std::vector<Submesh>& GetSubmeshes() { return _submeshes; }
-        [[nodiscard]] std::weak_ptr<UniformBuffer> GetModelBuffer() const { return _model; }
 
     private:
         std::vector<Submesh> _submeshes {};
         Path _directory {};
 
-        std::shared_ptr<UniformBuffer> _model;
 
     private:
         void load(const Path& path);
         void unload();
 
         void processNode(aiNode* node, const aiScene* scene);
-        static Submesh processMesh(aiMesh *mesh, const aiScene* scene);
+        Submesh processMesh(aiMesh *mesh, const aiScene* scene);
     };
 }

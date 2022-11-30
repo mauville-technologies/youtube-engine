@@ -20,7 +20,8 @@ namespace OZZ {
         void Bind() override;
         void Load(const std::string&& vertexShader, const std::string&& fragmentShader) override;
 
-        VkDescriptorSet GetDescriptorSet(uint8_t frameNumber, uint32_t index) const;
+        [[nodiscard]] VkPipelineLayout GetPipelineLayout() { return _pipelineLayout; }
+        [[nodiscard]] VkDescriptorSetLayout GetDescriptorSetLayout(uint32_t index);
 
         ~VulkanShader() override;
     private:
@@ -33,9 +34,6 @@ namespace OZZ {
          * PIPELINES
          */
         std::vector<VkDescriptorSetLayout> _descriptorSetLayouts {};
-        std::vector<std::vector<VkDescriptorSet>> _descriptorSets {};
-
-        VkDescriptorSet _texturesDescriptorSet { VK_NULL_HANDLE };
 
         VkPipelineLayout _pipelineLayout{ VK_NULL_HANDLE };
         VkPipeline _pipeline { VK_NULL_HANDLE };

@@ -15,9 +15,9 @@ namespace OZZ {
         ~TransformComponent() = default;
 
         glm::mat4 GetTransform();
-        glm::quat _rotation { glm::vec3(0.0, 0.0, 0.0) };
-    private:
-        glm::vec3 _translation { 0.f };
-        glm::vec3 _scale { 1.f };
+
+        glm::quat Rotation {glm::vec3(0.0, 0.0, 0.0) };
+        glm::vec3 Translation {0.f };
+        glm::vec3 Scale {1.f };
     };
 }

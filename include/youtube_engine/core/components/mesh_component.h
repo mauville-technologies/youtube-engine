@@ -17,9 +17,12 @@ namespace OZZ {
 
         std::weak_ptr<Mesh> GetMesh();
         std::weak_ptr<Mesh> SetMesh(std::shared_ptr<Mesh>&& mesh);
+        [[nodiscard]] std::weak_ptr<UniformBuffer> GetModelBuffer() const { return _modelBuffer; }
 
     private:
         std::shared_ptr<Mesh> _mesh { nullptr };
+        std::shared_ptr<UniformBuffer> _modelBuffer;
+
     };
 }
 

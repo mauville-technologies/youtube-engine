@@ -10,6 +10,7 @@
 #include <array>
 
 #include "vulkan_includes.h"
+#include "vulkan_descriptor_set_manager.h"
 
 namespace OZZ {
     constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
@@ -75,6 +76,8 @@ namespace OZZ {
 
         RendererSettings _rendererSettings {};
 
+        VulkanDescriptorSetManager _descriptorSetManager;
+
         /*
          * CORE VULKAN
          */
@@ -105,13 +108,6 @@ namespace OZZ {
          */
         VkQueue _graphicsQueue;
         uint32_t _graphicsQueueFamily;
-
-        static constexpr std::array<VkDescriptorPoolSize, 2> POOL_SIZES {
-                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
-                VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10 }
-        };
-
-        VkDescriptorPool _descriptorPool { VK_NULL_HANDLE };
 
         /*
          * RENDER PASSES

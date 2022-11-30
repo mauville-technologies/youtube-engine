@@ -12,6 +12,7 @@
 namespace OZZ {
     struct RenderableObject {
         std::weak_ptr<Mesh> Mesh;
+        std::weak_ptr<UniformBuffer> ModelBuffer;
         glm::mat4 Transform;
     };
 

@@ -10,5 +10,5 @@ layout (set = 1, binding = 0) uniform sampler2D Diffuse0;
 void main() {
     vec3 color = texture(Diffuse0, texCoord).xyz;
     outFragColour = vec4(color, 1.0);
-    //outFragColour = inColour;
+    //outFragColour = inColour + vec4(color, 1.0);
 }

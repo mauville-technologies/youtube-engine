@@ -7,9 +7,9 @@
 namespace OZZ {
 
     glm::mat4 TransformComponent::GetTransform() {
-        glm::mat4 translation = glm::translate(glm::mat4{1.f}, _translation);
-        glm::mat4 scale = glm::scale(glm::mat4{1.f}, _scale);
-        glm::mat4 rotation = toMat4(_rotation);
+        glm::mat4 translation = glm::translate(glm::mat4{1.f}, Translation);
+        glm::mat4 scale = glm::scale(glm::mat4{1.f}, Scale);
+        glm::mat4 rotation = toMat4(Rotation);
         return translation * rotation * scale;
     }
 }

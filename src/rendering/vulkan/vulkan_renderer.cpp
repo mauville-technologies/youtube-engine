@@ -6,6 +6,7 @@
 #include "vulkan_renderer.h"
 
 #include <cmath>
+#include <map>
 #include <VkBootstrap.h>
 
 #include <youtube_engine/service_locator.h>
@@ -33,7 +34,8 @@ namespace OZZ {
         WaitForIdle();
 
         cleanupSwapchain();
-        vkDestroyDescriptorPool(_device, _descriptorPool, nullptr);
+
+        _descriptorSetManager.Shutdown();
 
         vkDestroySwapchainKHR(_device, _swapchain, nullptr);
 
@@ -57,6 +59,8 @@ namespace OZZ {
     void VulkanRenderer::BeginFrame() {
         VK_CHECK(vkWaitForFences(_device, 1, &getCurrentFrame().RenderFence, true, 1000000000)); // 1
         VK_CHECK(vkResetFences(_device, 1, &getCurrentFrame().RenderFence));                     // 0
+
+        _descriptorSetManager.NextDescriptorFrame();
 
         VkResult result = vkAcquireNextImageKHR(_device, _swapchain, 1000000000, getCurrentFrame().PresentSemaphore,
                                                 VK_NULL_HANDLE, &getCurrentFrame().SwapchainImageIndex);
@@ -120,7 +124,6 @@ namespace OZZ {
         currentFrame.CameraData->UploadData(const_cast<int*>(reinterpret_cast<const int*>(&sceneParams.Camera)), sizeof(sceneParams.Camera));
 
         // Render all the objects
-        std::string lastMaterial {};
         for (auto& object : objects) {
             auto mesh = object.Mesh.lock();
 
@@ -140,36 +143,39 @@ namespace OZZ {
 
                     std::vector<VkWriteDescriptorSet> writeSets {};
 
+                    std::map<int, VkDescriptorSet> descriptorSets {};
                     auto shaderData = shader->GetShaderData();
 
-                    if (lastMaterial != material->GetID()) {
-                        lastMaterial = material->GetID();
+                    for (auto& [resourceName, resource] : shaderData.Resources) {
+                        if (!descriptorSets.contains(resource.Set)) {
+                            auto descriptorSetLayout = dynamic_cast<VulkanShader *>(shader.get())->GetDescriptorSetLayout(resource.Set);
+                            auto descriptorSet = _descriptorSetManager.GetDescriptorSet(descriptorSetLayout);
 
-                        //TODO: Update descriptor set with camera data
-                        if (shaderData.Resources.contains(ResourceName::CameraData)) {
-                            auto cameraData = shaderData.Resources[ResourceName::CameraData];
-
-                            auto *buffer = dynamic_cast<VulkanUniformBuffer *>(currentFrame.CameraData.get());
-                            auto descriptorSet = dynamic_cast<VulkanShader *>(shader.get())->GetDescriptorSet(currentFrameNumber,
-                                    cameraData.Set);
-
-                            VkDescriptorBufferInfo descriptorBufferInfo{};
-                            descriptorBufferInfo.buffer = buffer->_buffer->Buffer;
-                            descriptorBufferInfo.offset = 0;
-                            descriptorBufferInfo.range = buffer->_bufferSize;
-
-                            auto writeSet = VulkanUtilities::WriteDescriptorSetUniformBuffer(descriptorSet,
-                                                                                             cameraData.Binding,
-                                                                                             &descriptorBufferInfo);
-                            writeSets.push_back(writeSet);
+                            descriptorSets[resource.Set] = descriptorSet;
                         }
+                    }
+
+
+                    //TODO: Update descriptor set with camera data
+                    if (shaderData.Resources.contains(ResourceName::CameraData)) {
+                        auto cameraData = shaderData.Resources[ResourceName::CameraData];
+                        auto *buffer = dynamic_cast<VulkanUniformBuffer *>(currentFrame.CameraData.get());
+
+                        VkDescriptorBufferInfo descriptorBufferInfo{};
+                        descriptorBufferInfo.buffer = buffer->_buffer->Buffer;
+                        descriptorBufferInfo.offset = 0;
+                        descriptorBufferInfo.range = buffer->_bufferSize;
+
+                        auto writeSet = VulkanUtilities::WriteDescriptorSetUniformBuffer(descriptorSets[cameraData.Set],
+                                                                                         cameraData.Binding,
+                                                                                         &descriptorBufferInfo);
+                        writeSets.push_back(writeSet);
                     }
 
                     // Bind all textures
                     for (int i = (int)ResourceName::Diffuse0; i < (int)ResourceName::EndTextures; i++) {
                         if (shader->GetShaderData().Resources.contains((ResourceName)i)) {
                             auto textureData = shader->GetShaderData().Resources.at((ResourceName)i);
-                            auto descriptorSet = dynamic_cast<VulkanShader*>(shader.get())->GetDescriptorSet(currentFrameNumber, textureData.Set);
 
                             // Get texture
                             auto texture = submesh.GetTexture((ResourceName)i).lock();
@@ -189,12 +195,13 @@ namespace OZZ {
                                     .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
                             };
 
-                            writeSets.push_back(VulkanUtilities::WriteDescriptorSetTexture(descriptorSet, textureData.Binding, &imageBufferInfo));
+                            writeSets.push_back(VulkanUtilities::WriteDescriptorSetTexture(
+                                    descriptorSets[textureData.Set], textureData.Binding, &imageBufferInfo));
                         }
                     }
 
                     // Upload model matrix
-                    auto modelBuffer = mesh->GetModelBuffer().lock();
+                    auto modelBuffer = object.ModelBuffer.lock();
 
                     if (!modelBuffer) {
                         std::cout << "Mesh model buffer is not valid!" << std::endl;
@@ -205,9 +212,7 @@ namespace OZZ {
 
                     if (shader->GetShaderData().Resources.contains(ResourceName::ModelData)) {
                         auto modelData = shader->GetShaderData().Resources.at(ResourceName::ModelData);
-                        auto descriptorSet = dynamic_cast<VulkanShader *>(shader.get())->GetDescriptorSet(currentFrameNumber,
-                                                                                                          modelData.Set);
-                        auto *buffer = dynamic_cast<VulkanUniformBuffer *>(mesh->GetModelBuffer().lock().get());
+                        auto *buffer = dynamic_cast<VulkanUniformBuffer *>(modelBuffer.get());
 
                         VkDescriptorBufferInfo descriptorBufferInfo{};
                         descriptorBufferInfo.buffer = buffer->_buffer->Buffer;
@@ -215,9 +220,10 @@ namespace OZZ {
                         descriptorBufferInfo.range = buffer->_bufferSize;
 
                         writeSets.push_back(
-                                VulkanUtilities::WriteDescriptorSetUniformBuffer(descriptorSet, modelData.Binding,
+                                VulkanUtilities::WriteDescriptorSetUniformBuffer(descriptorSets[modelData.Set], modelData.Binding,
                                                                                  &descriptorBufferInfo));
                     }
+
 
                     if (!writeSets.empty()) {
                         vkUpdateDescriptorSets(_device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0,
@@ -227,8 +233,17 @@ namespace OZZ {
                     // Bind and draw the things
                     shader->Bind();
 
+                    for (auto& [set, descriptorSetCollection] : descriptorSets) {
+                        vkCmdBindDescriptorSets(getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                                dynamic_cast<VulkanShader *>(shader.get())->GetPipelineLayout(),
+                                                set, 1,
+                                                &descriptorSetCollection, 0,
+                                                nullptr);
+                    }
+
                     submesh._indexBuffer->Bind();
                     submesh._vertexBuffer->Bind();
+
                     vkCmdDrawIndexed(currentFrame.MainCommandBuffer, submesh._indexBuffer->GetCount(), 1, 0, 0, 0);
                 }
             }
@@ -311,6 +326,7 @@ namespace OZZ {
 
         std::vector<std::string> extensions {};
 
+        extensions.emplace_back("VK_KHR_get_physical_device_properties2");
 #if __APPLE__
     #include <TargetConditionals.h>
     #if TARGET_OS_MAC
@@ -321,7 +337,7 @@ namespace OZZ {
         vkb::InstanceBuilder builder;
         builder.set_app_name(_rendererSettings.ApplicationName.c_str())
                 .request_validation_layers(true)
-                .require_api_version(1, 1, 0)
+                .require_api_version(1, 2, 0)
                 .use_default_debug_messenger();
 
         for (auto& extension : extensions) {
@@ -344,7 +360,7 @@ namespace OZZ {
         ServiceLocator::GetWindow()->RequestDrawSurface(surfaceArgs);
 
         std::vector<std::string> deviceExtensions {};
-
+        deviceExtensions.emplace_back("VK_KHR_push_descriptor");
 #if __APPLE__
     #if TARGET_OS_MAC
         deviceExtensions.emplace_back("VK_KHR_portability_subset");
@@ -385,6 +401,8 @@ namespace OZZ {
         ServiceLocator::GetWindow()->RegisterWindowResizedCallback([this](){
             _recreateFrameBuffer = true;
         });
+
+        _descriptorSetManager = VulkanDescriptorSetManager { &_device };
     }
 
     void VulkanRenderer::cleanupSwapchain() {
@@ -517,13 +535,13 @@ namespace OZZ {
     }
 
     void VulkanRenderer::createDescriptorPools() {
-        VkDescriptorPoolCreateInfo descriptorPoolCreateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-        descriptorPoolCreateInfo.flags = 0;
-        descriptorPoolCreateInfo.maxSets = 10;
-        descriptorPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(POOL_SIZES.size());
-        descriptorPoolCreateInfo.pPoolSizes = POOL_SIZES.data();
-
-        VK_CHECK(vkCreateDescriptorPool(_device, &descriptorPoolCreateInfo, nullptr, &_descriptorPool));
+//        VkDescriptorPoolCreateInfo descriptorPoolCreateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+//        descriptorPoolCreateInfo.flags = 0;
+//        descriptorPoolCreateInfo.maxSets = 10;
+//        descriptorPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(POOL_SIZES.size());
+//        descriptorPoolCreateInfo.pPoolSizes = POOL_SIZES.data();
+//
+//        VK_CHECK(vkCreateDescriptorPool(_device, &descriptorPoolCreateInfo, nullptr, &_descriptorPool));
 
     }
 

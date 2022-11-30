@@ -35,14 +35,6 @@ namespace OZZ {
         _directory = meshPath.parent_path();
 
         processNode(scene->mRootNode, scene);
-
-        _model = ServiceLocator::GetRenderer()->CreateUniformBuffer();
-
-        ModelObject mod {
-            .model = glm::mat4{1.f}
-        };
-
-        _model->UploadData(reinterpret_cast<int*>(&mod), sizeof(ModelObject));
     }
 
     void Mesh::unload() {
@@ -105,6 +97,7 @@ namespace OZZ {
 
                 aiString str;
                 mat->GetTexture(aiTextureType_DIFFUSE, i, &str);
+                auto textureId = this->GetID() + str.C_Str();
 
                 if (auto* texData = scene->GetEmbeddedTexture(str.C_Str())) {
                     if (!texData->mHeight) {
@@ -112,14 +105,13 @@ namespace OZZ {
                         auto* buffer = reinterpret_cast<char*>(texData->pcData);
 
                         auto imageData = ImageData(buffer, texData->mWidth);
-                        submesh.SetTexture(textureSlot , ServiceLocator::GetResourceManager()->Load<Image>(str.C_Str(), imageData));
+                        submesh.SetTexture(textureSlot , ServiceLocator::GetResourceManager()->Load<Image>(textureId, imageData));
                     }
                 } else {
                     auto imageData = ImageData(str.C_Str());
-
                     if (imageData.IsValid()) {
                         submesh.SetTexture(textureSlot,
-                                           ServiceLocator::GetResourceManager()->Load<Image>(str.C_Str(), imageData));
+                                           ServiceLocator::GetResourceManager()->Load<Image>(textureId, imageData));
                     }
                 }
             }
