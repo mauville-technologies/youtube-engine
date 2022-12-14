@@ -6,6 +6,7 @@
 #pragma once
 #include <string>
 #include <youtube_engine/core/scene.h>
+#include <chrono>
 
 namespace OZZ {
     class Game {
@@ -37,6 +38,8 @@ namespace OZZ {
         bool _running;
 
         std::unique_ptr<Scene> _currentScene {};
+
+        std::chrono::time_point<std::chrono::high_resolution_clock> _lastFrameTime {};
     };
 
     extern Game *CreateGame();

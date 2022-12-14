@@ -40,9 +40,14 @@ namespace OZZ {
             }
 
             // calculate deltaTime
+            auto currentFrameTime { std::chrono::high_resolution_clock::now() };
+
+            auto durDeltaTime = currentFrameTime - _lastFrameTime;
+            auto deltaTime = std::chrono::duration<float, std::milli > { durDeltaTime }.count() / 1000.f;
+            _lastFrameTime = currentFrameTime;
 
             // Update game state
-            Update(0.0f);
+            Update(deltaTime);
 
             // Update physics
             ServiceLocator::GetRenderer()->BeginFrame();
