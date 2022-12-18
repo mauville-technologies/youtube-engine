@@ -6,49 +6,72 @@
 
 namespace OZZ {
 
-    void MultiplatformInput::UpdateKeyboardState(int key, float value) {
-        InputKey iKey = multiplatformKeyToInputKey(key);
+    void MultiplatformInput::UpdateKeyboardState(GLFWwindow* window) {
+        for (int key = GLFW_KEY_UNKNOWN; key < GLFW_KEY_LAST; key++) {
+            InputKey iKey = multiplatformKeyToInputKey(key);
+            if (iKey == InputKey::Unknown) continue;
 
-        _keyboardState[iKey].value = value;
+            auto state = glfwGetKey(window, key);
+
+            _keyboardState[iKey].value = static_cast<float>(state);
+        }
     }
 
-    void MultiplatformInput::UpdateMouseState(int button, float value) {
-        InputKey iKey = multiplatformMouseButtonToInputKey(button);
+    void MultiplatformInput::UpdateMouseState(GLFWwindow* window) {
 
-        _mouseState[iKey].value = value;
+        // Set buttons
+        for (int button = GLFW_MOUSE_BUTTON_1; button < GLFW_MOUSE_BUTTON_LAST; button++) {
+            InputKey iKey = multiplatformMouseButtonToInputKey(button);
+            if (iKey == InputKey::Unknown) continue;
+
+            auto state = glfwGetMouseButton(window, button);
+            _mouseState[iKey].value = static_cast<float>(state);
+        }
+
+        // Set movement
+        float lastX = _mouseState[InputKey::MouseX].value;
+        float lastY = _mouseState[InputKey::MouseY].value;
+
+        double x, y;
+        glfwGetCursorPos(window, &x, &y);
+
+        _mouseState[InputKey::MouseMoveX].value = static_cast<float>(x) - lastX;
+        _mouseState[InputKey::MouseMoveY].value = static_cast<float>(y) - lastY;
+        _mouseState[InputKey::MouseX].value = static_cast<float>(x);
+        _mouseState[InputKey::MouseY].value = static_cast<float>(y);
     }
 
     InputKey MultiplatformInput::multiplatformKeyToInputKey(int key) {
         switch (key) {
             case GLFW_KEY_A:
-                return InputKey::KEY_A;
+                return InputKey::KeyA;
             case GLFW_KEY_B:
-                return InputKey::KEY_B;
+                return InputKey::KeyB;
             case GLFW_KEY_C:
-                return InputKey::KEY_C;
+                return InputKey::KeyC;
             case GLFW_KEY_D:
-                return InputKey::KEY_D;
+                return InputKey::KeyD;
             case GLFW_KEY_E:
-                return InputKey::KEY_E;
+                return InputKey::KeyE;
             case GLFW_KEY_S:
-                return InputKey::KEY_S;
+                return InputKey::KeyS;
             case GLFW_KEY_W:
-                return InputKey::KEY_W;
+                return InputKey::KeyW;
             default:
-                return InputKey::UNKNOWN;
+                return InputKey::Unknown;
         }
     }
 
     InputKey MultiplatformInput::multiplatformMouseButtonToInputKey(int button) {
         switch (button) {
             case GLFW_MOUSE_BUTTON_LEFT:
-                return InputKey::MOUSE_LEFT;
+                return InputKey::MouseButtonLeft;
             case GLFW_MOUSE_BUTTON_RIGHT:
-                return InputKey::MOUSE_RIGHT;
+                return InputKey::MouseButtonRight;
             case GLFW_MOUSE_BUTTON_MIDDLE:
-                return InputKey::MOUSE_MIDDLE;
+                return InputKey::MouseButtonMiddle;
             default:
-                return InputKey::UNKNOWN;
+                return InputKey::Unknown;
         }
     }
 
@@ -62,46 +85,46 @@ namespace OZZ {
 
             switch (i) {
                 case GLFW_GAMEPAD_BUTTON_B:
-                    gamepadState[InputKey::GAMEPAD_B].value = value;
+                    gamepadState[InputKey::ControllerButtonB].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_A:
-                    gamepadState[InputKey::GAMEPAD_A].value = value;
+                    gamepadState[InputKey::ControllerButtonA].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_X:
-                    gamepadState[InputKey::GAMEPAD_X].value = value;
+                    gamepadState[InputKey::ControllerButtonX].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_Y:
-                    gamepadState[InputKey::GAMEPAD_Y].value = value;
+                    gamepadState[InputKey::ControllerButtonY].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_LEFT_BUMPER:
-                    gamepadState[InputKey::GAMEPAD_BUMPER_L].value = value;
+                    gamepadState[InputKey::ControllerButtonLeftShoulder].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER:
-                    gamepadState[InputKey::GAMEPAD_BUMPER_R].value = value;
+                    gamepadState[InputKey::ControllerButtonRightShoulder].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_BACK:
-                    gamepadState[InputKey::GAMEPAD_SELECT].value = value;
+                    gamepadState[InputKey::ControllerButtonSelect].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_START:
-                    gamepadState[InputKey::GAMEPAD_START].value = value;
+                    gamepadState[InputKey::ControllerButtonStart].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_LEFT_THUMB:
-                    gamepadState[InputKey::GAMEPAD_L3].value = value;
+                    gamepadState[InputKey::ControllerButtonLeftStick].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_RIGHT_THUMB:
-                    gamepadState[InputKey::GAMEPAD_R3].value = value;
+                    gamepadState[InputKey::ControllerButtonRightStick].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_DPAD_UP:
-                    gamepadState[InputKey::GAMEPAD_DPAD_UP].value = value;
+                    gamepadState[InputKey::ControllerButtonDpadUp].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_DPAD_RIGHT:
-                    gamepadState[InputKey::GAMEPAD_DPAD_RIGHT].value = value;
+                    gamepadState[InputKey::ControllerButtonDpadRight].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_DPAD_DOWN:
-                    gamepadState[InputKey::GAMEPAD_DPAD_DOWN].value = value;
+                    gamepadState[InputKey::ControllerButtonDpadDown].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_DPAD_LEFT:
-                    gamepadState[InputKey::GAMEPAD_DPAD_LEFT].value = value;
+                    gamepadState[InputKey::ControllerButtonDpadLeft].value = value;
                     break;
                 case GLFW_GAMEPAD_BUTTON_GUIDE:
                 default:
@@ -115,22 +138,22 @@ namespace OZZ {
 
             switch (i) {
                 case GLFW_GAMEPAD_AXIS_LEFT_X:
-                    gamepadState[InputKey::GAMEPAD_L_THUMB_X].value = value;
+                    gamepadState[InputKey::ControllerAxisLeftX].value = value;
                     break;
                 case GLFW_GAMEPAD_AXIS_LEFT_Y:
-                    gamepadState[InputKey::GAMEPAD_L_THUMB_Y].value = -value;
+                    gamepadState[InputKey::ControllerAxisLeftY].value = -value;
                     break;
                 case GLFW_GAMEPAD_AXIS_RIGHT_X:
-                    gamepadState[InputKey::GAMEPAD_R_THUMB_X].value = value;
+                    gamepadState[InputKey::ControllerAxisRightX].value = value;
                     break;
                 case GLFW_GAMEPAD_AXIS_RIGHT_Y:
-                    gamepadState[InputKey::GAMEPAD_R_THUMB_Y].value = -value;
+                    gamepadState[InputKey::ControllerAxisRightY].value = -value;
                     break;
                 case GLFW_GAMEPAD_AXIS_LEFT_TRIGGER:
-                    gamepadState[InputKey::GAMEPAD_L_TRIGGER].value = value;
+                    gamepadState[InputKey::ControllerAxisTriggerLeft].value = value;
                     break;
                 case GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER:
-                    gamepadState[InputKey::GAMEPAD_R_TRIGGER].value = value;
+                    gamepadState[InputKey::ControllerAxisTriggerRight].value = value;
                     break;
                 default:
                     break;

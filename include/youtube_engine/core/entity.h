@@ -9,6 +9,7 @@
 // include all component headers for ease of use
 #include <youtube_engine/core/components/transform_component.h>
 #include <youtube_engine/core/components/mesh_component.h>
+#include <youtube_engine/core/components/camera_component.h>
 
 namespace OZZ {
     class Entity {

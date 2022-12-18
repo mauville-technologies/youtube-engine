@@ -16,8 +16,8 @@ namespace OZZ {
         std::unordered_map<InputKey, InputDeviceState> GetMouseState(int index) { return _mouseState; }
         std::unordered_map<InputKey, InputDeviceState> GetGamepadState(const GLFWgamepadstate& state);
 
-        void UpdateKeyboardState(int key, float value);
-        void UpdateMouseState(int button, float value);
+        void UpdateKeyboardState(GLFWwindow* window);
+        void UpdateMouseState(GLFWwindow* window);
 
     private:
         static InputKey multiplatformKeyToInputKey(int key);

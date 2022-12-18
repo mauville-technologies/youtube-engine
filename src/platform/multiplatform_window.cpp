@@ -22,7 +22,7 @@ namespace OZZ {
 
                 if (inputManager) {
                     inputManager->RegisterDevice(InputDevice{
-                            .Type = InputDeviceType::GAMEPAD,
+                            .Source = InputSource::Controller,
                             .Index = i,
                             .StateFunc = std::bind(&MultiPlatformWindow::getGamepadState, this,
                                                    std::placeholders::_1)
@@ -39,7 +39,7 @@ namespace OZZ {
                 if (input) {
                     if (event == GLFW_CONNECTED && glfwJoystickIsGamepad(joystickId)) {
                         inputManager->RegisterDevice(InputDevice{
-                                .Type = InputDeviceType::GAMEPAD,
+                                .Source = InputSource::Controller,
                                 .Index = joystickId,
                                 .StateFunc = std::bind(&MultiPlatformWindow::getGamepadState, input,
                                                        std::placeholders::_1)
@@ -48,7 +48,7 @@ namespace OZZ {
                     }
                     else if (event == GLFW_DISCONNECTED) {
                         // The joystick was disconnected
-                        inputManager->RemoveDevice(InputDeviceType::GAMEPAD, joystickId);
+                        inputManager->RemoveDevice(InputSource::Controller, joystickId);
                         std::cout << "Disconnected" << "\n";
 
                     }
@@ -73,7 +73,7 @@ namespace OZZ {
                         value = 0.f;
                 }
 
-                input->UpdateKeyboardState(key, value);
+                input->UpdateKeyboardState(window);
             }
         });
 
@@ -82,7 +82,7 @@ namespace OZZ {
             auto* input = static_cast<MultiplatformInput*>(glfwGetWindowUserPointer(window));
 
             if (input) {
-                input->UpdateMouseState(button, action == GLFW_PRESS ? 1.f : 0.f);
+                input->UpdateMouseState(window);
             }
         });
 
@@ -96,13 +96,13 @@ namespace OZZ {
         auto* inputManager = ServiceLocator::GetInputManager();
 
         inputManager->RegisterDevice(InputDevice {
-            .Type = InputDeviceType::KEYBOARD,
+            .Source = InputSource::Keyboard,
             .Index = 0,
             .StateFunc = std::bind(&MultiplatformInput::GetKeyboardState, &_input, std::placeholders::_1)
         });
 
         inputManager->RegisterDevice(InputDevice {
-            .Type = InputDeviceType::MOUSE,
+            .Source = InputSource::Mouse,
             .Index = 0,
             .StateFunc = std::bind(&MultiplatformInput::GetMouseState, &_input, std::placeholders::_1)
         });
@@ -112,6 +112,9 @@ namespace OZZ {
     bool MultiPlatformWindow::Update() {
         glfwPollEvents();
 
+        // Update keyboard state
+        _input.UpdateKeyboardState(_window);
+        _input.UpdateMouseState(_window);
 
         return glfwWindowShouldClose(_window);
     }
@@ -121,6 +124,12 @@ namespace OZZ {
         glfwGetFramebufferSize(_window, &width, &height);
 
         return { width, height };
+    }
+
+
+    float MultiPlatformWindow::GetAspectRatio() {
+        auto [width, height] = GetWindowExtents();
+        return static_cast<float>(width) / static_cast<float>(height);
     }
 
     void MultiPlatformWindow::RequestDrawSurface(std::unordered_map<SurfaceArgs, int*> args) {
@@ -152,5 +161,6 @@ namespace OZZ {
 
         return std::unordered_map<InputKey, InputDeviceState>{};
     }
+
 
 }

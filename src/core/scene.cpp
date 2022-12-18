@@ -32,10 +32,31 @@ namespace OZZ {
         auto [width, height] = ServiceLocator::GetWindow()->GetWindowExtents();
 
         std::vector<RenderableObject> ros {};
-        // Calculate the camera
-        auto view = glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        auto projection = glm::perspective(glm::radians(70.f), width / (float) height, 0.1f, 999.0f);
-        projection[1][1] *= -1;
+
+        auto cameraObjects = _registry.view<TransformComponent, CameraComponent>();
+
+        glm::mat4 viewMatrix;
+        glm::mat4 projection;
+
+        bool foundCamera { false };
+
+        for (auto entity : cameraObjects) {
+            auto camComponent = cameraObjects.get<CameraComponent>(entity);
+            auto transformComponent = cameraObjects.get<TransformComponent>(entity);
+
+            if (camComponent.IsActive()) {
+                foundCamera = true;
+                viewMatrix = CameraComponent::GetViewMatrix(transformComponent.GetTransform());
+                projection = camComponent.GetProjectionMatrix();
+                projection[1][1] *= -1;
+                break;
+            }
+        }
+
+        if (!foundCamera) {
+            std::cerr << "No Camera in Scene, cannot draw!" << std::endl;
+            return;
+        }
 
         // Loop through all renderable objects
         auto renderableObjects = _registry.view<TransformComponent, MeshComponent>();
@@ -52,7 +73,7 @@ namespace OZZ {
 
         SceneParams sceneParams {
             .Camera = {
-                    .View = view,
+                    .View = viewMatrix,
                     .Projection = projection
             },
         };

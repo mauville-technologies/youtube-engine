@@ -14,6 +14,8 @@ namespace OZZ {
         bool Update() override;
 
         std::pair<int, int> GetWindowExtents() override;
+        float GetAspectRatio() override;
+
         void RequestDrawSurface(std::unordered_map<SurfaceArgs, int*> args) override;
         void RegisterWindowResizedCallback(std::function<void()> callback) override { _resizeCallback = callback; }
 

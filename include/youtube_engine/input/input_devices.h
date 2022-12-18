@@ -4,14 +4,9 @@
 
 #pragma once
 #include <functional>
+#include <youtube_engine/input/input_key.h>
 
 namespace OZZ {
-    enum class InputDeviceType {
-        KEYBOARD,
-        MOUSE,
-        GAMEPAD
-    };
-
     struct InputDeviceState {
         float value { -99.f };
     };
@@ -19,7 +14,7 @@ namespace OZZ {
     using InputDeviceStateCallbackFunc = std::function<std::unordered_map<InputKey, InputDeviceState>(int)>;
 
     struct InputDevice {
-        InputDeviceType Type;
+        InputSource Source;
         int Index;
         std::unordered_map<InputKey, InputDeviceState> CurrentState;
         InputDeviceStateCallbackFunc StateFunc;

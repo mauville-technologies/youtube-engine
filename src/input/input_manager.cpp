@@ -8,43 +8,16 @@
 
 namespace OZZ {
     InputSource GetInputSourceFromKey(InputKey key) {
-        switch (key) {
-        case InputKey::KEY_A:
-        case InputKey::KEY_B:
-        case InputKey::KEY_C:
-        case InputKey::KEY_D:
-        case InputKey::KEY_E:
-            return InputSource::KEYBOARD;
-        case InputKey::GAMEPAD_L_THUMB_X:
-        case InputKey::GAMEPAD_L_THUMB_Y:
-        case InputKey::GAMEPAD_R_THUMB_X:
-        case InputKey::GAMEPAD_R_THUMB_Y:
-        case InputKey::GAMEPAD_R_TRIGGER:
-        case InputKey::GAMEPAD_L_TRIGGER:
-        case InputKey::GAMEPAD_Y:
-        case InputKey::GAMEPAD_X:
-        case InputKey::GAMEPAD_B:
-        case InputKey::GAMEPAD_A:
-        case InputKey::GAMEPAD_START:
-        case InputKey::GAMEPAD_SELECT:
-        case InputKey::GAMEPAD_BUMPER_R:
-        case InputKey::GAMEPAD_BUMPER_L:
-        case InputKey::GAMEPAD_L3:
-        case InputKey::GAMEPAD_R3:
-        case InputKey::GAMEPAD_DPAD_UP:
-        case InputKey::GAMEPAD_DPAD_RIGHT:
-        case InputKey::GAMEPAD_DPAD_LEFT:
-        case InputKey::GAMEPAD_DPAD_DOWN:
-            return InputSource::GAMEPAD;
-        case InputKey::MOUSE_LEFT:
-        case InputKey::MOUSE_RIGHT:
-        case InputKey::MOUSE_MIDDLE:
-        case InputKey::MOUSE_MOVE_X:
-        case InputKey::MOUSE_MOVE_Y:
-            return InputSource::MOUSE;
-        default:
-            return InputSource::UNKNOWN;
+
+        if (key < InputKey::KeyMax) {
+            return InputSource::Keyboard;
+        } else if (key < InputKey::ControllerMax) {
+            return InputSource::Controller;
+        } else if (key < InputKey::MouseMax) {
+            return InputSource::Mouse;
         }
+
+        return InputSource::Unknown;
     }
 
     InputManager::InputManager() {
@@ -68,13 +41,66 @@ namespace OZZ {
 
     void InputManager::MapInputToAction(InputKey key, const InputAction& action) {
         // TODO: Check for duplicates
-        _inputActionMapping[key].emplace_back(action);
+        _inputKeyMapping[key].emplace_back(action);
+        _inputActionMapping[action.ActionName].emplace_back(key);
     }
 
     void InputManager::UnmapInputFromAction(InputKey key, const std::string& action) {
-        erase_if(_inputActionMapping[key], [action](const InputAction& inputAction) {
-            return inputAction.actionName == action;
+        erase_if(_inputKeyMapping[key], [action](const InputAction& inputAction) {
+            return inputAction.ActionName == action;
         });
+
+        erase_if(_inputActionMapping[action], [key](const InputKey& inputKey) {
+            return key == inputKey;
+        });
+    }
+
+    float InputManager::GetActionValue(const std::string &actionName) {
+        // TODO: This will need to be able to specify device indexes or sources or something later?
+        auto& keys = _inputActionMapping[actionName];
+
+        if (keys.empty()) {
+            return 0.f;
+        }
+
+        // Get the largest value and return it
+        float value = 0.f;
+        InputKey theKey = InputKey::Unknown;
+
+        for (auto& key : keys) {
+            // get the device
+            auto device = GetInputSourceFromKey(key);
+
+            // search for devices with that value
+            for (auto &iDevice: _devices) {
+                if (iDevice.Source == device) {
+                    // check value of key
+                    auto state = iDevice.StateFunc(iDevice.Index);
+                    auto newVal = state[key].value;
+
+                    if (std::abs(newVal) > std::abs(value)) {
+                        value = newVal;
+                        theKey = key;
+                    }
+                }
+            }
+        }
+
+        if (theKey == InputKey::Unknown) {
+            return 0.f;
+        }
+
+        // get the weight for that key
+        float weight = 1.f;
+
+        for (auto& action : _inputKeyMapping[theKey]) {
+            if (action.ActionName == actionName) {
+                weight = action.Scale;
+                break;
+            }
+        }
+
+        return value * weight;
     }
 
     void InputManager::processInput() {
@@ -102,7 +128,7 @@ namespace OZZ {
     }
 
     std::vector<InputManager::ActionEvent> InputManager::generateActionEvent(int DeviceIndex, InputKey key, float newVal) {
-        auto& actions = _inputActionMapping[key];
+        auto& actions = _inputKeyMapping[key];
 
         std::vector<ActionEvent> actionEvents {};
 
@@ -110,17 +136,18 @@ namespace OZZ {
 
         for (auto& action : actions) {
             actionEvents.emplace_back(ActionEvent {
-                .ActionName = action.actionName,
+                .ActionName = action.ActionName,
                 .Source = source,
                 .SourceIndex = DeviceIndex,
-                .Value = newVal * action.scale
+                .Value = newVal * action.Scale
             });
         }
 
         return actionEvents;
     }
 
-    void InputManager::propagateActionEvent(ActionEvent event) {
+    void InputManager::propagateActionEvent(const ActionEvent& event) {
+        if (size_t i = _actionCallbacks[event.ActionName].empty()) return;
         for (size_t i = _actionCallbacks[event.ActionName].size() - 1; i >= 0; i--) {
             auto& actionCallback = _actionCallbacks[event.ActionName][i];
 
@@ -129,14 +156,14 @@ namespace OZZ {
     }
 
     void InputManager::RegisterDevice(const InputDevice& device) {
-        std::cout << "Device registered of type: " << static_cast<int>(device.Type) << std::endl;
+        std::cout << "Device registered of type: " << static_cast<int>(device.Source) << std::endl;
         _devices.emplace_back(device);
         std::cout << "Device #: " << _devices.size() << std::endl;
     }
 
-    void InputManager::RemoveDevice(InputDeviceType type, int inputIndex) {
+    void InputManager::RemoveDevice(InputSource type, int inputIndex) {
         erase_if(_devices, [type, inputIndex](const InputDevice& device) {
-            return device.Type == type && device.Index == inputIndex;
+            return device.Source == type && device.Index == inputIndex;
         });
         std::cout << "Device unregistered of type: " << static_cast<int>(type) << std::endl;
         std::cout << "Device #: " << _devices.size() << std::endl;
