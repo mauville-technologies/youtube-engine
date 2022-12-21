@@ -21,6 +21,7 @@ namespace OZZ {
                 auto* inputManager = ServiceLocator::GetInputManager();
 
                 if (inputManager) {
+                    _input.AddController(i);
                     inputManager->RegisterDevice(InputDevice{
                             .Source = InputSource::Controller,
                             .Index = i,
@@ -38,6 +39,7 @@ namespace OZZ {
                 auto *input = dynamic_cast<MultiPlatformWindow *>(ServiceLocator::GetWindow());
                 if (input) {
                     if (event == GLFW_CONNECTED && glfwJoystickIsGamepad(joystickId)) {
+                        input->_input.AddController(joystickId);
                         inputManager->RegisterDevice(InputDevice{
                                 .Source = InputSource::Controller,
                                 .Index = joystickId,
@@ -48,9 +50,9 @@ namespace OZZ {
                     }
                     else if (event == GLFW_DISCONNECTED) {
                         // The joystick was disconnected
+                        input->_input.RemoveController(joystickId);
                         inputManager->RemoveDevice(InputSource::Controller, joystickId);
                         std::cout << "Disconnected" << "\n";
-
                     }
                 }
             }
@@ -124,12 +126,6 @@ namespace OZZ {
         glfwGetFramebufferSize(_window, &width, &height);
 
         return { width, height };
-    }
-
-
-    float MultiPlatformWindow::GetAspectRatio() {
-        auto [width, height] = GetWindowExtents();
-        return static_cast<float>(width) / static_cast<float>(height);
     }
 
     void MultiPlatformWindow::RequestDrawSurface(std::unordered_map<SurfaceArgs, int*> args) {

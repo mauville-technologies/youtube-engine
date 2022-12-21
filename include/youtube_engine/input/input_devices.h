@@ -8,7 +8,7 @@
 
 namespace OZZ {
     struct InputDeviceState {
-        float value { -99.f };
+        float value { 0.f };
     };
 
     using InputDeviceStateCallbackFunc = std::function<std::unordered_map<InputKey, InputDeviceState>(int)>;

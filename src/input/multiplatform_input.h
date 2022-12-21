@@ -19,6 +19,8 @@ namespace OZZ {
         void UpdateKeyboardState(GLFWwindow* window);
         void UpdateMouseState(GLFWwindow* window);
 
+        void AddController(int id);
+        void RemoveController(int id);
     private:
         static InputKey multiplatformKeyToInputKey(int key);
         static InputKey multiplatformMouseButtonToInputKey(int button);
@@ -26,6 +28,7 @@ namespace OZZ {
         std::unordered_map<InputKey, InputDeviceState> _keyboardState {};
         std::unordered_map<InputKey, InputDeviceState> _mouseState {};
 
+        std::unordered_map<int, int> _connectedControllers {};
     };
 }
 

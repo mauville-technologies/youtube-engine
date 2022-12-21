@@ -5,6 +5,7 @@
 #pragma once
 #include <youtube_engine/platform/window.h>
 #include <SDL.h>
+#include <input/sdl_input.h>
 
 namespace OZZ {
     class SDLWindow : public Window {
@@ -19,9 +20,12 @@ namespace OZZ {
             _windowResizedCallback = function;
         }
 
-    private:
+        std::unordered_map<InputKey, InputDeviceState> getGamepadState(int joystickId);
+
         SDL_Window* _window = nullptr;
         std::function<void()> _windowResizedCallback;
+
+        SDLInput _input {};
     };
 }
 
