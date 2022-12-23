@@ -20,8 +20,8 @@ namespace OZZ {
 
     private:
         static InputKey sdlKeyToInputKey(Uint8 key);
-        InputKey sdlControllerButtonToInputKey(SDL_GameControllerButton button);
-        InputKey sdlControllerAxisToInputKey(SDL_GameControllerAxis axis);
+        static InputKey sdlControllerButtonToInputKey(SDL_GameControllerButton button);
+        static InputKey sdlControllerAxisToInputKey(SDL_GameControllerAxis axis);
     private:
         std::unordered_map<InputKey, InputDeviceState> _keyboardState {};
         std::unordered_map<InputKey, InputDeviceState> _mouseState {};
