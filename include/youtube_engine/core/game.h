@@ -18,10 +18,12 @@ namespace OZZ {
         ~Game();
 
         // Will run the main game
-        void Run();
+        void Run(int argc, char **argv);
 
+        std::string GetTitle() { return _title; }
     protected:
         Scene* GetScene() { return _currentScene.get(); }
+        virtual void Init() {};
         virtual void PhysicsUpdate(float deltaTime) {};
         virtual void Update(float deltaTime) {};
         virtual void OnExit() {};
@@ -34,7 +36,7 @@ namespace OZZ {
     public:
 
     private:
-        std::string _title;
+        std::string _title {"Default Ozz Game"};
         bool _running;
 
         std::unique_ptr<Scene> _currentScene {};

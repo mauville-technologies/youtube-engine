@@ -4,7 +4,7 @@
 
 #pragma once
 #include <youtube_engine/platform/window.h>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <input/sdl_input.h>
 
 namespace OZZ {

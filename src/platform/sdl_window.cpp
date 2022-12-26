@@ -6,12 +6,14 @@
 
 #include <youtube_engine/service_locator.h>
 #include <rendering/vulkan/vulkan_includes.h>
-#include <SDL_vulkan.h>
+#include <SDL3/SDL_vulkan.h>
 #include <iostream>
 
 namespace OZZ {
 
     void SDLWindow::OpenWindow(WindowData data) {
+        std::cout << "Opening SDL window" << std::endl;
+
         SDL_Init(SDL_INIT_EVERYTHING);
 
         auto width = data.width;
@@ -44,15 +46,9 @@ namespace OZZ {
             // Do stuff with events
             if (event.type == SDL_QUIT) return true;
 
-            if (event.type == SDL_WINDOWEVENT) {
-                switch (event.window.event) {
-                    case SDL_WINDOWEVENT_RESIZED: {
-                        if (_windowResizedCallback) {
-                            _windowResizedCallback();
-                        }
-                        break;
-                    }
-
+            if (event.type == SDL_WINDOWEVENT_RESIZED) {
+                if (_windowResizedCallback) {
+                    _windowResizedCallback();
                 }
             }
 

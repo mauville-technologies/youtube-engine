@@ -25,6 +25,29 @@ file(GLOB SOURCES "src/*.cpp" "src/*/*.cpp" "src/*/*/*.cpp" "src/*/*/*/*.cpp")
 
 add_library(${PROJECT_NAME} ${SOURCES} src/platform/sdl_window.cpp src/platform/sdl_window.h)
 
+if (WIN32)
+    target_compile_definitions(${PROJECT_NAME}
+        PRIVATE
+            WIN32_LEAN_AND_MEAN
+            NOMINMAX
+            OZZ_WINDOWS
+    )
+endif()
+
+if (APPLE)
+    target_compile_definitions(${PROJECT_NAME}
+        PRIVATE
+            OZZ_MAC
+    )
+endif()
+
+if (UNIX AND NOT APPLE)
+    target_compile_definitions(${PROJECT_NAME}
+        PRIVATE
+            OZZ_LINUX
+    )
+endif()
+
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         $<INSTALL_INTERFACE:include>
@@ -37,8 +60,8 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${Vulkan_INCLUDE_DIRS}
-        SDL2main
-        SDL2-static
+        SDL3-static
+    SYSTEM
         glfw
         vk-bootstrap
         VulkanMemoryAllocator
@@ -56,8 +79,7 @@ target_link_libraries(${PROJECT_NAME}
         EnTT
     PRIVATE
         ${Vulkan_LIBRARIES}
-        SDL2main
-        SDL2-static
+        SDL3-static
         glfw
         vk-bootstrap
         VulkanMemoryAllocator

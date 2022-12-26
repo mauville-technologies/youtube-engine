@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
     auto* theGame = OZZ::CreateGame();
 
     // Run the game
-    theGame->Run();
+    theGame->Run(argc, argv);
 
     // once it's done, delete the game
     delete theGame;

@@ -4,6 +4,7 @@
 #include <youtube_engine/rendering/renderer.h>
 #include <youtube_engine/input/input_manager.h>
 #include <youtube_engine/resources/resource_manager.h>
+#include <youtube_engine/platform/configuration.h>
 
 namespace OZZ {
     class ServiceLocator {
@@ -12,6 +13,7 @@ namespace OZZ {
         static inline Renderer* GetRenderer() { return _renderer.get(); }
         static inline InputManager* GetInputManager() { return _inputManager.get(); }
         static inline ResourceManager* GetResourceManager() { return _resourceManager.get(); }
+        static inline Configuration* GetConfiguration() { return _configuration.get(); }
 
         static inline void Provide(Window *window) {
             if (_window != nullptr) return;
@@ -35,6 +37,13 @@ namespace OZZ {
             _resourceManager = std::unique_ptr<ResourceManager>(resourceManager);
         }
 
+        static inline void Provide(Configuration* configurationManager) {
+            if (_configuration != nullptr) return;
+
+            _configuration = std::unique_ptr<Configuration>(configurationManager);
+            _configuration->Init();
+        }
+
         static inline void ShutdownServices() {
             // ensure we shut down services in the correct order
             // usually opposite order of initialized.
@@ -42,6 +51,7 @@ namespace OZZ {
             shutdownInputManager();
             shutdownRenderer();
             shutdownWindow();
+            shutdownConfiguration();
         }
 
     private:
@@ -50,6 +60,7 @@ namespace OZZ {
         static inline std::unique_ptr<Renderer> _renderer = nullptr;
         static inline std::unique_ptr<InputManager> _inputManager = nullptr;
         static inline std::unique_ptr<ResourceManager> _resourceManager = nullptr;
+        static inline std::unique_ptr<Configuration> _configuration = nullptr;
 
         static inline void shutdownWindow() {
             _window.reset();
@@ -73,6 +84,11 @@ namespace OZZ {
             if (!_resourceManager) return;
 
             _resourceManager.reset();
+        }
+
+        static inline void shutdownConfiguration() {
+            if (!_configuration) return;
+            _configuration.reset();
         }
     };
 }

@@ -7,6 +7,11 @@
 #include <functional>
 
 namespace OZZ {
+    enum class WindowType {
+        SDL,
+        GLFW
+    };
+
     enum class SurfaceArgs {
         INSTANCE,
         ALLOCATORS,

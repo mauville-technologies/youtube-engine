@@ -5,6 +5,7 @@
 
 namespace OZZ {
     void MultiPlatformWindow::OpenWindow(WindowData data) {
+        std::cout << "Opening GLFW window" << std::endl;
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);

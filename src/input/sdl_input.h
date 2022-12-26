@@ -2,8 +2,7 @@
 #include <unordered_map>
 #include <youtube_engine/input/input_key.h>
 #include <youtube_engine/input/input_devices.h>
-#include <SDL_types.h>
-#include <SDL_gamecontroller.h>
+#include <SDL3/SDL_gamecontroller.h>
 
 namespace OZZ {
     class SDLInput {

@@ -5,28 +5,39 @@
 
 #include <youtube_engine/core/game.h>
 #include <youtube_engine/service_locator.h>
+#include <youtube_engine/platform/filesystem.h>
 
 #include <platform/multiplatform_window.h>
 #include <platform/sdl_window.h>
+#include <platform/configuration_manager.h>
 #include <rendering/vulkan/vulkan_renderer.h>
 
 
 namespace OZZ {
     Game::Game() : Game("New Youtube Engine Game") {}
 
-    Game::Game(std::string windowTitle) : _title(std::move(windowTitle)), _running(true) {
-        // Create scene
-        _currentScene = std::make_unique<Scene>();
-
-        initializeServices();
-    }
+    Game::Game(std::string windowTitle) : _title(std::move(windowTitle)), _running(false) {}
 
     Game::~Game() {
         _currentScene.reset();
         shutdownServices();
     }
 
-    void Game::Run() {
+    void Game::Run(int argc, char **argv) {
+        // Set up configuration
+        // Set the home folder path
+        Filesystem::GameTitle = _title;
+        std::cout << "User app directory: " << Filesystem::GetAppUserDataDirectory() << std::endl;
+
+        initializeServices();
+
+        // Create scene
+        _currentScene = std::make_unique<Scene>();
+
+        _running = true;
+
+        Init();
+
         // run the application
         while (_running) {
             // Update the window
@@ -63,18 +74,30 @@ namespace OZZ {
     }
 
     void Game::initializeServices() {
+        ServiceLocator::Provide(new ConfigurationManager());
+
+        auto* configuration = ServiceLocator::GetConfiguration();
+
+        auto& engineConfiguration = configuration->GetEngineConfiguration();
+
         // provide input manager
         ServiceLocator::Provide(new InputManager());
 
         // Provide a window
-//        ServiceLocator::Provide(new MultiPlatformWindow());
-        ServiceLocator::Provide(new SDLWindow());
+        switch (engineConfiguration.WinType) {
+            case WindowType::SDL:
+                ServiceLocator::Provide(new SDLWindow());
+                break;
+            case WindowType::GLFW:
+                ServiceLocator::Provide(new MultiPlatformWindow());
+                break;
+        }
 
         // Open the window
         ServiceLocator::GetWindow()->OpenWindow({
                 .title = _title,
-                .width = 800,
-                .height = 600
+                .width = engineConfiguration.ResX,
+                .height = engineConfiguration.ResY
         });
 
         // initialize the renderer
