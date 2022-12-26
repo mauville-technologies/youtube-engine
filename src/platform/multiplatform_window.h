@@ -15,6 +15,8 @@ namespace OZZ {
 
         std::pair<int, int> GetWindowExtents() override;
 
+        void SetWindowDisplayMode(WindowDisplayMode displayMode) override;
+
         void RequestDrawSurface(std::unordered_map<SurfaceArgs, int*> args) override;
         void RegisterWindowResizedCallback(std::function<void()> callback) override { _resizeCallback = callback; }
 
@@ -24,5 +26,8 @@ namespace OZZ {
         GLFWwindow *_window = nullptr;
 
         std::function<void()> _resizeCallback{};
+
+        int previousPosX { 0 };
+        int previousPosY { 0 };
     };
 }

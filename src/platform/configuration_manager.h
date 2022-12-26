@@ -21,9 +21,20 @@ namespace OZZ {
         void WriteConfig() override;
 
         void ReadConfig() override;
+
+        void SetEngineSetting(EngineSetting setting, std::any) override;
+
+        void ListenForEngineSettingChange(EngineSetting setting, EngineSettingChangeCallback callback) override;
+
+        void StopListeningForEngineSettingChange(EngineSetting setting, std::string callbackRef) override;
+
     private:
-        Path ConfigFilename;
-        EngineConfiguration _engineConfig;
-        std::unordered_map<std::string, std::any> _userConfig;
+        void broadcastSettingChange(EngineSetting);
+
+        Path ConfigFilename {};
+        EngineConfiguration _engineConfig {};
+        std::unordered_map<std::string, std::any> _userConfig {};
+
+        std::unordered_map<EngineSetting, std::vector<EngineSettingChangeCallback>> _listeners {};
     };
 }

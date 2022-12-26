@@ -31,6 +31,8 @@ namespace OZZ {
     void Scene::Draw() {
         auto [width, height] = ServiceLocator::GetWindow()->GetWindowExtents();
 
+        if (width == 0 || height == 0) return;
+
         std::vector<RenderableObject> ros {};
 
         auto cameraObjects = _registry.view<TransformComponent, CameraComponent>();

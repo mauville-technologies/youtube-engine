@@ -15,6 +15,9 @@ namespace OZZ {
         bool Update() override;
 
         std::pair<int, int> GetWindowExtents() override;
+
+        void SetWindowDisplayMode(WindowDisplayMode displayMode) override;
+
         void RequestDrawSurface(std::unordered_map<SurfaceArgs, int*> args) override;
         void RegisterWindowResizedCallback(std::function<void()> function) override {
             _windowResizedCallback = function;

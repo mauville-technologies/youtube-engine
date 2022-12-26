@@ -21,6 +21,7 @@ namespace OZZ {
         void Run(int argc, char **argv);
 
         std::string GetTitle() { return _title; }
+        void Quit() { _running = false; }
     protected:
         Scene* GetScene() { return _currentScene.get(); }
         virtual void Init() {};

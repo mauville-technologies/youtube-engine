@@ -16,11 +16,18 @@ namespace OZZ {
 
         SDL_Init(SDL_INIT_EVERYTHING);
 
-        auto width = data.width;
-        auto height = data.height;
+        auto width = data.Width;
+        auto height = data.Height;
 
-        _window = SDL_CreateWindow(data.title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width,
+        _window = SDL_CreateWindow(data.Title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width,
                                    height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+
+
+        // TODO: Make Toggleable.
+//        SDL_SetWindowFullscreen(_window, SDL_WINDOW_FULLSCREEN);
+//        SDL_DisplayMode DM;
+//        SDL_GetDesktopDisplayMode(0, &DM);
+//        SDL_SetWindowSize(_window, DM.w, DM.h);
 
         auto* inputManager = ServiceLocator::GetInputManager();
 
@@ -94,6 +101,10 @@ namespace OZZ {
         SDL_Vulkan_GetDrawableSize(_window, &width, &height);
 
         return {width, height};
+    }
+
+    void SDLWindow::SetWindowDisplayMode(WindowDisplayMode displayMode) {
+
     }
 
     void SDLWindow::RequestDrawSurface(std::unordered_map<SurfaceArgs, int*> args) {

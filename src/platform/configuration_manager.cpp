@@ -62,4 +62,83 @@ namespace OZZ {
 
         _engineConfig.FromJson(jsonFile["engine"]);
     }
+
+    void ConfigurationManager::SetEngineSetting(EngineSetting setting, std::any value) {
+        try {
+            switch (setting) {
+                case EngineSetting::WindowType: {
+                    auto newValue = std::any_cast<WindowType>(value);
+
+                    if (newValue != _engineConfig.WinType) {
+                        _engineConfig.WinType = newValue;
+                        broadcastSettingChange(setting);
+                    }
+
+                    break;
+                }
+                case EngineSetting::WindowDisplayMode: {
+                    auto newValue = std::any_cast<WindowDisplayMode>(value);
+
+                    if (newValue != _engineConfig.WinDisplayMode) {
+                        _engineConfig.WinDisplayMode = newValue;
+                        broadcastSettingChange(setting);
+                    }
+
+                    break;
+                }
+                case EngineSetting::ResolutionX: {
+                    auto newValue = std::any_cast<uint32_t>(value);
+
+                    if (newValue != _engineConfig.ResX) {
+                        _engineConfig.ResX = newValue;
+                        broadcastSettingChange(setting);
+                    }
+
+                    break;
+                }
+                case EngineSetting::ResolutionY: {
+                    auto newValue = std::any_cast<uint32_t>(value);
+
+                    if (newValue != _engineConfig.ResY) {
+                        _engineConfig.ResY = newValue;
+                        broadcastSettingChange(setting);
+                    }
+
+                    break;
+                }
+                case EngineSetting::VR: {
+                    auto newValue = std::any_cast<bool>(value);
+
+                    if (newValue != _engineConfig.VR) {
+                        _engineConfig.VR = newValue;
+                        broadcastSettingChange(setting);
+                    }
+
+                    break;
+                }
+            }
+
+            WriteConfig();
+        } catch (std::bad_any_cast& e) {
+            std::cout << "Invalid type supplied for EngineSetting " << static_cast<int>(setting) << std::endl;
+        }
+    }
+
+    void ConfigurationManager::ListenForEngineSettingChange(EngineSetting setting,
+                                                            Configuration::EngineSettingChangeCallback callback) {
+        _listeners[setting].push_back(callback);
+    }
+
+    void ConfigurationManager::StopListeningForEngineSettingChange(EngineSetting setting, std::string callbackRef) {
+        erase_if(_listeners[setting], [callbackRef](const EngineSettingChangeCallback& callback) {
+            return callback.Ref == callbackRef;
+        });
+    }
+
+    void ConfigurationManager::broadcastSettingChange(EngineSetting setting) {
+        for (auto& callback : _listeners[setting]) {
+            callback.Func();
+        }
+    }
+
 }

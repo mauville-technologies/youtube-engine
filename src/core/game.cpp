@@ -77,8 +77,35 @@ namespace OZZ {
         ServiceLocator::Provide(new ConfigurationManager());
 
         auto* configuration = ServiceLocator::GetConfiguration();
-
         auto& engineConfiguration = configuration->GetEngineConfiguration();
+
+        configuration->ListenForEngineSettingChange(EngineSetting::ResolutionX, Configuration::EngineSettingChangeCallback{
+                .Ref = "Game",
+                .Func = [this]() {
+                    // Update window type
+                }
+        });
+
+        configuration->ListenForEngineSettingChange(EngineSetting::ResolutionY, Configuration::EngineSettingChangeCallback{
+                .Ref = "Game",
+                .Func = [this]() {
+                    // Update window type
+                }
+        });
+
+        configuration->ListenForEngineSettingChange(EngineSetting::WindowDisplayMode, Configuration::EngineSettingChangeCallback{
+                .Ref = "Game",
+                .Func = [this]() {
+                    auto* configuration = ServiceLocator::GetConfiguration();
+                    auto& engineConfiguration = configuration->GetEngineConfiguration();
+
+                    auto* window = ServiceLocator::GetWindow();
+
+                    if (window) {
+                        window->SetWindowDisplayMode(engineConfiguration.WinDisplayMode);
+                    }
+                }
+        });
 
         // provide input manager
         ServiceLocator::Provide(new InputManager());
@@ -95,9 +122,10 @@ namespace OZZ {
 
         // Open the window
         ServiceLocator::GetWindow()->OpenWindow({
-                .title = _title,
-                .width = engineConfiguration.ResX,
-                .height = engineConfiguration.ResY
+                .Title = _title,
+                .Width = engineConfiguration.ResX,
+                .Height = engineConfiguration.ResY,
+                .DisplayMode = engineConfiguration.WinDisplayMode,
         });
 
         // initialize the renderer

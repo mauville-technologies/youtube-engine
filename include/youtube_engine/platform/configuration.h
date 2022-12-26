@@ -9,19 +9,27 @@
 #include <youtube_engine/platform/serializable.h>
 
 namespace OZZ {
+    enum class EngineSetting {
+        WindowType,
+        WindowDisplayMode,
+        ResolutionX,
+        ResolutionY,
+        VR,
+    };
+
     struct EngineConfiguration : Serializable {
         WindowType WinType { WindowType::GLFW };
 
-        bool Fullscreen { false };
-        uint32_t ResX { 800 };
-        uint32_t ResY { 600 };
+        WindowDisplayMode WinDisplayMode { false };
+        uint32_t ResX { 1920 };
+        uint32_t ResY { 1080 };
 
         bool VR { false };
 
         nlohmann::json ToJson() override {
             nlohmann::json json;
             json["windowType"] = static_cast<int>(WinType);
-            json["fullscreen"] = Fullscreen;
+            json["windowDisplayMode"] = static_cast<int>(WinDisplayMode);
             json["resX"] = ResX;
             json["resY"] = ResY;
             json["vr"] = VR;
@@ -30,7 +38,7 @@ namespace OZZ {
 
         void FromJson(const nlohmann::json& inJson) override {
             WinType = static_cast<WindowType>(inJson["windowType"]);
-            Fullscreen = inJson["fullscreen"];
+            WinDisplayMode = static_cast<WindowDisplayMode>(inJson["windowDisplayMode"]);
             ResX = inJson["resX"];
             ResY = inJson["resY"];
             VR = inJson["vr"];
@@ -39,12 +47,23 @@ namespace OZZ {
 
     class Configuration {
     public:
+        using EngineSettingChangeCallbackFunc = std::function<void()>;
+
+        struct EngineSettingChangeCallback {
+            std::string Ref;
+            EngineSettingChangeCallbackFunc Func;
+        };
+
         virtual void Init() = 0;
         virtual const EngineConfiguration& GetEngineConfiguration() = 0;
         virtual const std::unordered_map<std::string, std::any>& GetUserConfiguration() = 0;
+
+        virtual void SetEngineSetting(EngineSetting, std::any) = 0;
+        virtual void ListenForEngineSettingChange(EngineSetting, EngineSettingChangeCallback func) = 0;
+        virtual void StopListeningForEngineSettingChange(EngineSetting, std::string) = 0;
+
         virtual void WriteConfig() = 0;
         virtual void ReadConfig() = 0;
     };
-
 }
 

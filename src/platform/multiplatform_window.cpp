@@ -9,10 +9,36 @@ namespace OZZ {
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        _window = glfwCreateWindow(static_cast<int>(data.width), static_cast<int>(data.height), data.title.c_str(),
-                                   nullptr, nullptr);
+        GLFWmonitor* monitor { nullptr };
+        int width = static_cast<int>(data.Width);
+        int height = static_cast<int>(data.Height);
+
+        switch(data.DisplayMode) {
+            case WindowDisplayMode::Fullscreen: {
+                monitor = glfwGetPrimaryMonitor();
+                auto *mode = glfwGetVideoMode(monitor);
+                width = mode->width;
+                height = mode->height;
+                break;
+            }
+            case WindowDisplayMode::BorderlessWindowed: {
+                auto *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+                width = mode->width;
+                height = mode->height;
+
+                glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+                glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+                break;
+            }
+            case WindowDisplayMode::Windowed:
+                glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
+                glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+                monitor = nullptr;
+        }
+
+        _window = glfwCreateWindow(width, height, data.Title.c_str(),
+                                   monitor, nullptr);
 
         glfwSetWindowUserPointer(_window, &_input);
         for (int i = 0; i <= GLFW_JOYSTICK_LAST; i++) {
@@ -56,27 +82,6 @@ namespace OZZ {
                         std::cout << "Disconnected" << "\n";
                     }
                 }
-            }
-        });
-
-        glfwSetKeyCallback(_window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
-            // Get the input
-            auto* input = static_cast<MultiplatformInput*>(glfwGetWindowUserPointer(window));
-
-            if (input) {
-                // set the new value for key
-                float value = 0.f;
-
-                switch (action) {
-                    case GLFW_PRESS:
-                    case GLFW_REPEAT:
-                        value = 1.f;
-                        break;
-                    default:
-                        value = 0.f;
-                }
-
-                input->UpdateKeyboardState(window);
             }
         });
 
@@ -129,6 +134,69 @@ namespace OZZ {
         return { width, height };
     }
 
+    void MultiPlatformWindow::SetWindowDisplayMode(WindowDisplayMode displayMode) {
+        GLFWmonitor* monitor { nullptr };
+        int width {};
+        int height {};
+        int x = 0, y = 0;
+        int refreshRate = 0;
+        switch(displayMode) {
+            case WindowDisplayMode::Fullscreen: {
+                monitor = glfwGetPrimaryMonitor();
+                auto *mode = glfwGetVideoMode(monitor);
+                width = mode->width;
+                height = mode->height;
+
+                auto *currentMon = glfwGetWindowMonitor(_window);
+                if (currentMon == nullptr) {
+                    int prevX, prevY;
+                    glfwGetWindowPos(_window, &prevX, &prevY);
+
+                    if (prevX != 0 && prevY != 0) {
+                        previousPosX = prevX;
+                        previousPosY = prevY;
+                    }
+                }
+                break;
+            }
+            case WindowDisplayMode::BorderlessWindowed: {
+                auto *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+                width = mode->width;
+                height = mode->height;
+                refreshRate = mode->refreshRate;
+                glfwSetWindowAttrib(_window, GLFW_DECORATED, GLFW_FALSE);
+
+                auto *currentMon = glfwGetWindowMonitor(_window);
+                if (currentMon == nullptr) {
+                    int prevX, prevY;
+                    glfwGetWindowPos(_window, &prevX, &prevY);
+
+                    if (prevX != 0 && prevY != 0) {
+                        previousPosX = prevX;
+                        previousPosY = prevY;
+                    }
+                }
+                break;
+            }
+            case WindowDisplayMode::Windowed:
+                auto* configuration = ServiceLocator::GetConfiguration();
+
+                auto& engineConfiguration = configuration->GetEngineConfiguration();
+                width = static_cast<int>(engineConfiguration.ResX);
+                height = static_cast<int>(engineConfiguration.ResY);
+
+                monitor = nullptr;
+                x = previousPosX == 0 ? 25 : previousPosX;
+                y = previousPosY == 0 ? 25 : previousPosY;
+
+                glfwSetWindowAttrib(_window, GLFW_DECORATED, GLFW_TRUE);
+                glfwSetWindowAttrib(_window, GLFW_RESIZABLE, GLFW_TRUE);
+        }
+
+        glfwSetWindowMonitor(_window, monitor, x, y, width, height, refreshRate);
+
+    }
+
     void MultiPlatformWindow::RequestDrawSurface(std::unordered_map<SurfaceArgs, int*> args) {
 
         // Extract what we need
@@ -158,6 +226,4 @@ namespace OZZ {
 
         return std::unordered_map<InputKey, InputDeviceState>{};
     }
-
-
 }

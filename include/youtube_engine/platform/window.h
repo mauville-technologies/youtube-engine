@@ -7,6 +7,12 @@
 #include <functional>
 
 namespace OZZ {
+    enum class WindowDisplayMode {
+        Windowed,
+        BorderlessWindowed,
+        Fullscreen
+    };
+
     enum class WindowType {
         SDL,
         GLFW
@@ -19,8 +25,9 @@ namespace OZZ {
     };
 
     struct WindowData {
-        std::string title;
-        uint32_t width, height;
+        std::string Title;
+        uint32_t Width, Height;
+        WindowDisplayMode DisplayMode;
     };
 
     class Window {
@@ -34,6 +41,8 @@ namespace OZZ {
             auto [width, height] = GetWindowExtents();
             return static_cast<float>(width) / static_cast<float>(height);
         }
+
+        virtual void SetWindowDisplayMode(WindowDisplayMode displayMode) = 0;
 
         virtual void RequestDrawSurface(std::unordered_map<SurfaceArgs, int*>) = 0;
         virtual void RegisterWindowResizedCallback(std::function<void()>) = 0;
