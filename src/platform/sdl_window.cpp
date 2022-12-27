@@ -16,18 +16,34 @@ namespace OZZ {
 
         SDL_Init(SDL_INIT_EVERYTHING);
 
+        uint32_t screenFlag {0};
+
         auto width = data.Width;
         auto height = data.Height;
 
+        SDL_DisplayMode DM;
+        SDL_GetDesktopDisplayMode(0, &DM);
+
+        switch(data.DisplayMode) {
+            case WindowDisplayMode::Fullscreen: {
+                screenFlag = SDL_WINDOW_FULLSCREEN;
+                width = DM.w;
+                height = DM.h;
+                break;
+            }
+            case WindowDisplayMode::BorderlessWindowed: {
+                screenFlag = SDL_WINDOW_BORDERLESS;
+                width = DM.w;
+                height = DM.h;
+                break;
+            }
+            case WindowDisplayMode::Windowed:
+                wasWindowed = true;
+                break;
+        }
+
         _window = SDL_CreateWindow(data.Title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width,
-                                   height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-
-
-        // TODO: Make Toggleable.
-//        SDL_SetWindowFullscreen(_window, SDL_WINDOW_FULLSCREEN);
-//        SDL_DisplayMode DM;
-//        SDL_GetDesktopDisplayMode(0, &DM);
-//        SDL_SetWindowSize(_window, DM.w, DM.h);
+                                   height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | screenFlag);
 
         auto* inputManager = ServiceLocator::GetInputManager();
 
@@ -104,7 +120,64 @@ namespace OZZ {
     }
 
     void SDLWindow::SetWindowDisplayMode(WindowDisplayMode displayMode) {
+        SDL_DisplayMode DM;
+        SDL_GetDesktopDisplayMode(0, &DM);
 
+        switch(displayMode) {
+            case WindowDisplayMode::Fullscreen: {
+                if (wasWindowed) {
+                    int prevX, prevY;
+                    SDL_GetWindowPosition(_window, &prevX, &prevY);
+
+                    if (prevX != 0 && prevY != 0) {
+                        previousPosX = prevX;
+                        previousPosY = prevY;
+                    }
+                }
+
+                SDL_SetWindowFullscreen(_window, SDL_WINDOW_FULLSCREEN);
+                SDL_SetWindowSize(_window, DM.w, DM.h);
+                SDL_SetWindowBordered(_window, SDL_FALSE);
+
+                wasWindowed = false;
+                break;
+            }
+            case WindowDisplayMode::BorderlessWindowed: {
+                if (wasWindowed) {
+                    int prevX, prevY;
+                    SDL_GetWindowPosition(_window, &prevX, &prevY);
+
+                    if (prevX != 0 && prevY != 0) {
+                        previousPosX = prevX;
+                        previousPosY = prevY;
+                    }
+                }
+
+                SDL_SetWindowFullscreen(_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                SDL_SetWindowSize(_window, DM.w, DM.h);
+                SDL_SetWindowBordered(_window, SDL_FALSE);
+
+                wasWindowed = false;
+                break;
+            }
+            case WindowDisplayMode::Windowed: {
+                auto *configuration = ServiceLocator::GetConfiguration();
+
+                auto &engineConfiguration = configuration->GetEngineConfiguration();
+                auto width = static_cast<int>(engineConfiguration.ResX);
+                auto height = static_cast<int>(engineConfiguration.ResY);
+
+                auto x = previousPosX == 0 ? 25 : previousPosX;
+                auto y = previousPosY == 0 ? 25 : previousPosY;
+
+                SDL_SetWindowFullscreen(_window, 0);
+                SDL_SetWindowBordered(_window, SDL_TRUE);
+                SDL_SetWindowSize(_window, width, height);
+                SDL_SetWindowPosition(_window, x, y);
+                wasWindowed = true;
+                break;
+            }
+        }
     }
 
     void SDLWindow::RequestDrawSurface(std::unordered_map<SurfaceArgs, int*> args) {

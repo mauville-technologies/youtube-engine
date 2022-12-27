@@ -25,10 +25,14 @@ namespace OZZ {
 
         std::unordered_map<InputKey, InputDeviceState> getGamepadState(int joystickId);
 
+    private:
         SDL_Window* _window = nullptr;
         std::function<void()> _windowResizedCallback;
 
         SDLInput _input {};
+        bool wasWindowed { false };
+        int previousPosX { 0 };
+        int previousPosY { 0 };
     };
 }
 
