@@ -15,6 +15,9 @@ namespace OZZ {
     public:
         explicit VulkanShader(VulkanRenderer* renderer);
 
+        void FreeResources() override;
+        void RecreateResources() override;
+
         void Rebuild();
 
         void Bind() override;
@@ -34,6 +37,7 @@ namespace OZZ {
          * PIPELINES
          */
         std::vector<VkDescriptorSetLayout> _descriptorSetLayouts {};
+        VkPushConstantRange _pushConstants {};
 
         VkPipelineLayout _pipelineLayout{ VK_NULL_HANDLE };
         VkPipeline _pipeline { VK_NULL_HANDLE };

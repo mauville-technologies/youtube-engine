@@ -104,14 +104,14 @@ namespace OZZ {
                         // Texture is compressed, treat it as a char array
                         auto* buffer = reinterpret_cast<char*>(texData->pcData);
 
-                        auto imageData = ImageData(buffer, texData->mWidth);
-                        submesh.SetTexture(textureSlot , ServiceLocator::GetResourceManager()->Load<Image>(textureId, imageData));
+                        auto imageData = new ImageData(buffer, texData->mWidth);
+                        submesh.SetTexture(textureSlot , ServiceLocator::GetResourceManager()->Load<Image>(textureId, std::move(imageData)));
                     }
                 } else {
                     auto imageData = ImageData(str.C_Str());
                     if (imageData.IsValid()) {
                         submesh.SetTexture(textureSlot,
-                                           ServiceLocator::GetResourceManager()->Load<Image>(textureId, imageData));
+                                           ServiceLocator::GetResourceManager()->Load<Image>(textureId));
                     }
                 }
             }
@@ -130,6 +130,18 @@ namespace OZZ {
         return submesh;
     }
 
+    void Mesh::ClearGPUResource() {
+        for (auto& submesh : _submeshes) {
+            submesh.freeResources();
+        }
+    }
+
+    void Mesh::RecreateGPUResource() {
+        for (auto& submesh : _submeshes) {
+            submesh.createResources();
+        }
+    }
+
 
     /*
      *  SUBMESH
@@ -141,6 +153,10 @@ namespace OZZ {
 
     Submesh::~Submesh() {
         freeResources();
+
+        _indices.clear();
+        _vertices.clear();
+        _textures.clear();
     }
 
     std::weak_ptr<Image> Submesh::SetTexture(ResourceName textureSlot, std::shared_ptr<Image> &&image) {
@@ -172,10 +188,6 @@ namespace OZZ {
     void Submesh::freeResources() {
         _indexBuffer.reset();
         _vertexBuffer.reset();
-
-        _indices.clear();
-        _vertices.clear();
-        _textures.clear();
     }
 
 }

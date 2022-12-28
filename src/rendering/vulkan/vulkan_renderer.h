@@ -38,8 +38,9 @@ namespace OZZ {
     friend class VulkanTexture;
 
     public:
-        void Init(RendererSettings settings) override;
-        void Shutdown() override;
+        void Reset() override;
+        void Reset(RendererSettings) override;
+
         void BeginFrame() override;
         void RenderFrame(const SceneParams& sceneParams, const std::vector<RenderableObject>& objects) override;
         void EndFrame() override;
@@ -53,8 +54,12 @@ namespace OZZ {
         std::shared_ptr<Texture> CreateTexture() override;
 
     private:
+        void Init() override;
+        void Shutdown() override;
+
         void initCore();
         void cleanupSwapchain();
+        void cleanResources();
 
         void recreateSwapchain();
         void rebuildShaders();
@@ -69,6 +74,9 @@ namespace OZZ {
         FrameData& getCurrentFrame();
         uint32_t getCurrentFrameNumber();
     private:
+
+        bool _initialized { false };
+        bool _resetting { false };
 
         //TODO: TEMPORARY FRAME NUMBER
         uint64_t _frameNumber {0};

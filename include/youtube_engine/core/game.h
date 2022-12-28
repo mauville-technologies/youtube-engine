@@ -29,6 +29,7 @@ namespace OZZ {
         virtual void Update(float deltaTime) {};
         virtual void OnExit() {};
 
+        virtual void ResetRenderer();
     private:
         void initializeServices();
 
@@ -39,6 +40,7 @@ namespace OZZ {
     private:
         std::string _title {"Default Ozz Game"};
         bool _running;
+        bool _rendererResetRequested { false };
 
         std::unique_ptr<Scene> _currentScene {};
 

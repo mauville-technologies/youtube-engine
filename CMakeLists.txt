@@ -20,10 +20,11 @@ add_subdirectory(external/entt)
 add_subdirectory(external/json)
 add_subdirectory(external/SPRIV-Cross)
 add_subdirectory(external/assimp)
+add_subdirectory(external/openxr)
 
 file(GLOB SOURCES "src/*.cpp" "src/*/*.cpp" "src/*/*/*.cpp" "src/*/*/*/*.cpp")
 
-add_library(${PROJECT_NAME} ${SOURCES} src/platform/sdl_window.cpp src/platform/sdl_window.h)
+add_library(${PROJECT_NAME} ${SOURCES})
 
 if (WIN32)
     target_compile_definitions(${PROJECT_NAME}
@@ -109,3 +110,18 @@ if (DEFINED ASSETS_DIR_NAME)
             COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${PROJECT_SOURCE_DIR}/defaultAssets/ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ASSETS_DIR_NAME})
 endif()
+
+add_executable(openxr_sandbox sandbox/openxr/main.cpp)
+
+target_include_directories(openxr_sandbox
+    PRIVATE
+        openxr_loader
+        ${Vulkan_INCLUDE_DIRS}
+
+)
+
+target_link_libraries(openxr_sandbox
+    PRIVATE
+        ${Vulkan_LIBRARIES}
+        openxr_loader
+)

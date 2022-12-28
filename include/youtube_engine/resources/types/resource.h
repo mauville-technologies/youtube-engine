@@ -8,6 +8,7 @@
 namespace OZZ {
 
     struct Resource {
+        friend class ResourceManager;
     public:
         using GUID = std::string;
 
@@ -22,6 +23,9 @@ namespace OZZ {
         virtual ~Resource() = default;
 
         [[nodiscard]] GUID GetID() const { return _guid; }
+    private:
+        virtual void ClearGPUResource() = 0;
+        virtual void RecreateGPUResource() = 0;
     private:
         GUID _guid;
         Type _type;

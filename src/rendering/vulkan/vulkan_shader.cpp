@@ -22,10 +22,19 @@ namespace OZZ {
         cleanPipeline();
     }
 
-    void VulkanShader::Rebuild() {
+
+    void VulkanShader::FreeResources() {
         cleanPipeline();
+    }
+
+    void VulkanShader::RecreateResources() {
         if (!_vertexShader.empty() && !_fragmentShader.empty())
             Load(std::move(_vertexShader), std::move(_fragmentShader));
+    }
+
+    void VulkanShader::Rebuild() {
+        FreeResources();
+        RecreateResources();
     }
 
     void VulkanShader::Bind() {
@@ -67,11 +76,13 @@ namespace OZZ {
 
         pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(_descriptorSetLayouts.size());
         pipelineLayoutInfo.pSetLayouts = _descriptorSetLayouts.data();
+        pipelineLayoutInfo.pPushConstantRanges = &_pushConstants;
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
 
         // descriptor set layout goes here
         // therefore they probably belong to the shader
 
-        VK_CHECK(vkCreatePipelineLayout(_renderer->_device, &pipelineLayoutInfo, nullptr, &_pipelineLayout));
+        VK_CHECK("VulkanShader::Load", vkCreatePipelineLayout(_renderer->_device, &pipelineLayoutInfo, nullptr, &_pipelineLayout));
 
         /*
          * TEMPORARY PIPELINE BUILDING
@@ -151,6 +162,7 @@ namespace OZZ {
     void VulkanShader::buildDescriptorSets() {
         // First step is to collect the descriptors
         std::map<uint32_t, std::vector<VkDescriptorSetLayoutBinding>> _descriptorSetDescriptions {};
+        bool pushConstantAdded { false };
 
         for (const auto& [k, resource] : _data.Resources) {
 
@@ -160,6 +172,16 @@ namespace OZZ {
 
             switch (resource.Type) {
                 case ResourceType::PushConstant:
+                    // TODO: Push constants can be more dynamic than this and can support multiple shader stages
+                    if (pushConstantAdded) {
+                        std::cout << "WARNING: Two sets of push constants in ShaderData!" << std::endl;
+                        continue;
+                    }
+                    std::cout << "Push constants present!" << std::endl;
+                    _pushConstants.offset = 0;
+                    _pushConstants.size = resource.Size;
+                    _pushConstants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+                    pushConstantAdded = true;
                     break;
                 case ResourceType::Uniform:
                     _descriptorSetDescriptions[resource.Set].push_back(GetUniformBufferLayoutBinding(resource.Binding));
@@ -179,7 +201,7 @@ namespace OZZ {
 
             VkDescriptorSetLayout currentLayout { VK_NULL_HANDLE };
 
-            VK_CHECK(vkCreateDescriptorSetLayout(_renderer->_device, &createDescriptorSetLayout, nullptr,
+            VK_CHECK("VulkanShader::buildDescriptorSets", vkCreateDescriptorSetLayout(_renderer->_device, &createDescriptorSetLayout, nullptr,
                                                  &currentLayout));
 
             _descriptorSetLayouts.push_back(currentLayout);

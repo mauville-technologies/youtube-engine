@@ -18,7 +18,7 @@ namespace OZZ {
             descriptorPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(POOL_SIZES.size());
             descriptorPoolCreateInfo.pPoolSizes = POOL_SIZES.data();
 
-            VK_CHECK(vkCreateDescriptorPool(*_device, &descriptorPoolCreateInfo, nullptr, &_descriptorPools[i]));
+            VK_CHECK("VulkanDescriptorSetManager::Constructor", vkCreateDescriptorPool(*_device, &descriptorPoolCreateInfo, nullptr, &_descriptorPools[i]));
         }
     }
 
@@ -31,7 +31,7 @@ namespace OZZ {
         allocateInfo.descriptorPool = _descriptorPools[_currentDescriptorFrame];
         allocateInfo.descriptorSetCount = 1;
         allocateInfo.pSetLayouts = &layout;
-        VK_CHECK(vkAllocateDescriptorSets(*_device, &allocateInfo, &descriptorSet));
+        VK_CHECK("VulkanDescriptorSetManager::GetDescriptorSet", vkAllocateDescriptorSets(*_device, &allocateInfo, &descriptorSet));
 
         pipelineCache.push_back(descriptorSet);
 

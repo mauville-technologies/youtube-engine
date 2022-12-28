@@ -13,6 +13,9 @@ namespace OZZ {
         void load(const Path& path);
         void unload();
 
+        void ClearGPUResource() override;
+        void RecreateGPUResource() override;
+
     private:
         std::shared_ptr<Shader> _shader;
     };

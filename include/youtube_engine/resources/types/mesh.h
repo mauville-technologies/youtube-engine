@@ -21,6 +21,7 @@ struct aiMesh;
 
 namespace OZZ {
     struct Submesh {
+        friend struct Mesh;
         Submesh(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices);
         ~Submesh();
 
@@ -66,5 +67,8 @@ namespace OZZ {
 
         void processNode(aiNode* node, const aiScene* scene);
         Submesh processMesh(aiMesh *mesh, const aiScene* scene);
+
+        void ClearGPUResource() override;
+        void RecreateGPUResource() override;
     };
 }

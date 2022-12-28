@@ -18,8 +18,10 @@ namespace OZZ {
     };
 
     class Renderer {
+        friend class Game;
+        friend class ServiceLocator;
     public:
-        virtual void Init(RendererSettings) = 0;
+        virtual void Init() = 0;
         virtual void Shutdown() = 0;
 
         virtual void BeginFrame() = 0;
@@ -36,5 +38,8 @@ namespace OZZ {
         virtual std::shared_ptr<UniformBuffer> CreateUniformBuffer() = 0;
         virtual std::shared_ptr<Texture> CreateTexture() = 0;
 
+    private:
+        virtual void Reset() = 0;
+        virtual void Reset(RendererSettings) = 0;
     };
 }

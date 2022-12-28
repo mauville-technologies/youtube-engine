@@ -17,7 +17,7 @@ namespace OZZ {
         vmaAllocationCreateInfo.usage = vmaUsage;
 
         // allocate the buffer
-        VK_CHECK(vmaCreateBuffer(*_allocator, &bufferCreateInfo, &vmaAllocationCreateInfo,
+        VK_CHECK("VulkanBuffer::Constructor", vmaCreateBuffer(*_allocator, &bufferCreateInfo, &vmaAllocationCreateInfo,
                      &Buffer,
                      &Allocation,
                      nullptr));

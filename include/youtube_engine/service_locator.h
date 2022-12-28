@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <utility>
 #include <youtube_engine/platform/window.h>
 #include <youtube_engine/rendering/renderer.h>
 #include <youtube_engine/input/input_manager.h>
@@ -24,7 +25,7 @@ namespace OZZ {
             if (_renderer != nullptr) return;
 
             _renderer = std::unique_ptr<Renderer>(renderer);
-            _renderer->Init(settings);
+            _renderer->Reset(std::move(settings));
         }
 
         static inline void Provide(InputManager* inputManager) {

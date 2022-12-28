@@ -9,13 +9,13 @@
 #include <iostream>
 namespace OZZ {
     MeshComponent::MeshComponent(std::shared_ptr<Mesh> &&mesh) : _mesh {mesh} {
-        _modelBuffer = ServiceLocator::GetRenderer()->CreateUniformBuffer();
-
-        ModelObject mod {
-                .model = glm::mat4{1.f}
-        };
-
-        _modelBuffer->UploadData(reinterpret_cast<int*>(&mod), sizeof(ModelObject));
+//        _modelBuffer = ServiceLocator::GetRenderer()->CreateUniformBuffer();
+//
+//        ModelObject mod {
+//                .model = glm::mat4{1.f}
+//        };
+//
+//        _modelBuffer->UploadData(reinterpret_cast<int*>(&mod), sizeof(ModelObject));
     }
 
     MeshComponent::~MeshComponent() {

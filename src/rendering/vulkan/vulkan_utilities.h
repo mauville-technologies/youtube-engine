@@ -14,11 +14,11 @@
 #include "vulkan_buffer.h"
 
 using namespace std;
-#define VK_CHECK(x)                                                             \
+#define VK_CHECK(context, x)                                                             \
     do {                                                                        \
         VkResult err = x;                                                       \
         if (err) {                                                              \
-            std::cout << "Detected Vulkan error: " << err << std::endl;         \
+            std::cout << "[ " << context << " ]"<< "Detected Vulkan error: " << err << std::endl;         \
             abort();                                                            \
         }                                                                       \
     } while(0)

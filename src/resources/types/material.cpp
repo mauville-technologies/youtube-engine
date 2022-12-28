@@ -66,4 +66,11 @@ namespace OZZ {
 
     }
 
+    void Material::ClearGPUResource() {
+        _shader->FreeResources();
+    }
+
+    void Material::RecreateGPUResource() {
+        _shader->RecreateResources();
+    }
 }

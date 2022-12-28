@@ -60,13 +60,20 @@ namespace OZZ {
             // Update game state
             Update(deltaTime);
 
-            // Update physics
-            ServiceLocator::GetRenderer()->BeginFrame();
+            if (!_rendererResetRequested) {
+                // Update physics
+                ServiceLocator::GetRenderer()->BeginFrame();
 
-            _currentScene->Draw();
+                _currentScene->Draw();
 
-            // Draw
-            ServiceLocator::GetRenderer()->EndFrame();
+                // Draw
+                ServiceLocator::GetRenderer()->EndFrame();
+            } else {
+                std::cout << "Renderer resetting!" << std::endl;
+                ServiceLocator::GetRenderer()->Reset();
+                std::cout << "Renderer Has Reset" << std::endl;
+                _rendererResetRequested = false;
+            }
         }
 
         ServiceLocator::GetRenderer()->WaitForIdle();
@@ -139,5 +146,10 @@ namespace OZZ {
 
     void Game::shutdownServices() {
         ServiceLocator::ShutdownServices();
+    }
+
+    void Game::ResetRenderer() {
+        if (!_rendererResetRequested)
+            _rendererResetRequested = true;
     }
 }

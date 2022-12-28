@@ -25,6 +25,8 @@ namespace OZZ {
         static glm::vec3 GetRightVector(const glm::mat4& tMat);
         static glm::vec3 GetUpVector(const glm::mat4& tMat);
 
+    public:
+
         float FieldOfView {45.f };
         float Near {0.001f };
         float Far {1000.f };

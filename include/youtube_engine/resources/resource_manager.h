@@ -16,6 +16,7 @@
 namespace OZZ {
 
     class ResourceManager {
+        friend class VulkanRenderer;
     public:
         template <typename ResourceType, typename ...Args>
         std::shared_ptr<ResourceType> Load(const Path& path, Args&& ...args) {
@@ -35,6 +36,9 @@ namespace OZZ {
         }
 
     private:
+
+        void ClearGPUResourcesForReset();
+        void RecreateGPUResourcesAfterReset();
         std::unordered_map<Resource::GUID, std::weak_ptr<Resource>> _resources;
     };
 }

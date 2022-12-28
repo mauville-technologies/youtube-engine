@@ -5,4 +5,19 @@
 #include <youtube_engine/resources/resource_manager.h>
 
 namespace OZZ {
-} // OZZ
+    void ResourceManager::ClearGPUResourcesForReset() {
+        for (auto [guid, resource] : _resources) {
+            if (auto resPtr = resource.lock()) {
+                resPtr->ClearGPUResource();
+            }
+        }
+    }
+
+    void ResourceManager::RecreateGPUResourcesAfterReset() {
+        for (auto [guid, resource] : _resources) {
+            if (auto resPtr = resource.lock()) {
+                resPtr->RecreateGPUResource();
+            }
+        }
+    }
+}

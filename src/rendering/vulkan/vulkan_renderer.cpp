@@ -17,10 +17,9 @@
 #include "vulkan_texture.h"
 
 namespace OZZ {
-    void VulkanRenderer::Init(RendererSettings settings) {
-        _rendererSettings = settings;
-
-        initCore();
+    void VulkanRenderer::Init() {
+        if (_initialized) return;
+        initCore() ;
         createSwapchain();
         createCommands();
         createDescriptorPools();
@@ -28,37 +27,48 @@ namespace OZZ {
         createDefaultRenderPass();
         createFramebuffers();
         createSyncStructures();
+        _initialized = true;
     }
 
     void VulkanRenderer::Shutdown() {
+        if (!_initialized) return;
         WaitForIdle();
 
-        cleanupSwapchain();
-
-        _descriptorSetManager.Shutdown();
-
-        vkDestroySwapchainKHR(_device, _swapchain, nullptr);
-
-        for (auto& frame : _frames) {
-            frame.CameraData.reset();
-            vkDestroySemaphore(_device, frame.PresentSemaphore, nullptr);
-            vkDestroySemaphore(_device, frame.RenderSemaphore, nullptr);
-            vkDestroyFence(_device, frame.RenderFence, nullptr);
-
-            vkDestroyCommandPool(_device, frame.CommandPool, nullptr);
-        }
-
-        vmaDestroyAllocator(_allocator);
+        cleanResources();
 
         vkDestroyDevice(_device, nullptr);
+        _device = VK_NULL_HANDLE;
         vkDestroySurfaceKHR(_instance, _surface, nullptr);
+        _surface = VK_NULL_HANDLE;
         vkb::destroy_debug_utils_messenger(_instance, _debug_messenger);
         vkDestroyInstance(_instance, nullptr);
+        _instance = VK_NULL_HANDLE;
+        _initialized = false;
+        _frameNumber = 0;
+    }
+
+    void VulkanRenderer::Reset() {
+        Reset(_rendererSettings);
+    }
+
+    void VulkanRenderer::Reset(RendererSettings settings) {
+        _resetting = true;
+        _rendererSettings = settings;
+
+        Shutdown();
+        Init();
+        auto* resourceManager = ServiceLocator::GetResourceManager();
+
+        if (resourceManager) {
+            resourceManager->RecreateGPUResourcesAfterReset();
+        }
+        _resetting = false;
     }
 
     void VulkanRenderer::BeginFrame() {
-        VK_CHECK(vkWaitForFences(_device, 1, &getCurrentFrame().RenderFence, true, 1000000000)); // 1
-        VK_CHECK(vkResetFences(_device, 1, &getCurrentFrame().RenderFence));                     // 0
+        if (!_initialized || _resetting) return;
+        VK_CHECK("VulkanRenderer::BeginFrame()::vkWaitForFences", vkWaitForFences(_device, 1, &getCurrentFrame().RenderFence, true, 1000000000)); // 1
+        VK_CHECK("VulkanRenderer::BeginFrame()::vkResetFences", vkResetFences(_device, 1, &getCurrentFrame().RenderFence));                     // 0
 
         _descriptorSetManager.NextDescriptorFrame();
 
@@ -70,14 +80,14 @@ namespace OZZ {
             return;
         }
 
-        VK_CHECK(vkResetCommandBuffer(getCurrentFrame().MainCommandBuffer, 0));
+        VK_CHECK("VulkanRenderer::BeginFrame()::vkResetCommandBuffer", vkResetCommandBuffer(getCurrentFrame().MainCommandBuffer, 0));
 
         VkCommandBuffer cmd = getCurrentFrame().MainCommandBuffer;
 
         VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-        VK_CHECK(vkBeginCommandBuffer(cmd, &beginInfo));
+        VK_CHECK("VulkanRenderer::BeginFrame()::vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &beginInfo));
 
         float flashColour = abs(sin((float) _frameNumber / 120.f));
 
@@ -111,6 +121,7 @@ namespace OZZ {
     }
 
     void VulkanRenderer::RenderFrame(const SceneParams &sceneParams, const vector<RenderableObject> &objects) {
+        if (!_initialized || _resetting) return;
         auto& currentFrame = getCurrentFrame();
         auto currentFrameNumber = getCurrentFrameNumber();
 
@@ -201,28 +212,29 @@ namespace OZZ {
                     }
 
                     // Upload model matrix
-                    auto modelBuffer = object.ModelBuffer.lock();
+//                    auto modelBuffer = object.ModelBuffer.lock();
+//
+//                    if (!modelBuffer) {
+//                        std::cout << "Mesh model buffer is not valid!" << std::endl;
+//                        continue;
+//                    }
 
-                    if (!modelBuffer) {
-                        std::cout << "Mesh model buffer is not valid!" << std::endl;
-                        continue;
-                    }
 
-                    modelBuffer->UploadData(const_cast<int *>(reinterpret_cast<const int*>(&object.Transform)), sizeof(ModelObject));
-
-                    if (shader->GetShaderData().Resources.contains(ResourceName::ModelData)) {
-                        auto modelData = shader->GetShaderData().Resources.at(ResourceName::ModelData);
-                        auto *buffer = dynamic_cast<VulkanUniformBuffer *>(modelBuffer.get());
-
-                        VkDescriptorBufferInfo descriptorBufferInfo{};
-                        descriptorBufferInfo.buffer = buffer->_buffer->Buffer;
-                        descriptorBufferInfo.offset = 0;
-                        descriptorBufferInfo.range = buffer->_bufferSize;
-
-                        writeSets.push_back(
-                                VulkanUtilities::WriteDescriptorSetUniformBuffer(descriptorSets[modelData.Set], modelData.Binding,
-                                                                                 &descriptorBufferInfo));
-                    }
+//                    modelBuffer->UploadData(const_cast<int *>(reinterpret_cast<const int*>(&object.Transform)), sizeof(ModelObject));
+//
+//                    if (shader->GetShaderData().Resources.contains(ResourceName::ModelData)) {
+//                        auto modelData = shader->GetShaderData().Resources.at(ResourceName::ModelData);
+//                        auto *buffer = dynamic_cast<VulkanUniformBuffer *>(modelBuffer.get());
+//
+//                        VkDescriptorBufferInfo descriptorBufferInfo{};
+//                        descriptorBufferInfo.buffer = buffer->_buffer->Buffer;
+//                        descriptorBufferInfo.offset = 0;
+//                        descriptorBufferInfo.range = buffer->_bufferSize;
+//
+//                        writeSets.push_back(
+//                                VulkanUtilities::WriteDescriptorSetUniformBuffer(descriptorSets[modelData.Set], modelData.Binding,
+//                                                                                 &descriptorBufferInfo));
+//                    }
 
 
                     if (!writeSets.empty()) {
@@ -244,6 +256,10 @@ namespace OZZ {
                     submesh._indexBuffer->Bind();
                     submesh._vertexBuffer->Bind();
 
+                    vkCmdPushConstants(getCurrentFrame().MainCommandBuffer,
+                                       dynamic_cast<VulkanShader *>(shader.get())->GetPipelineLayout(),
+                                       VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ModelObject), &object.Transform);
+
                     vkCmdDrawIndexed(currentFrame.MainCommandBuffer, submesh._indexBuffer->GetCount(), 1, 0, 0, 0);
                 }
             }
@@ -251,9 +267,10 @@ namespace OZZ {
     }
 
     void VulkanRenderer::EndFrame() {
+        if (!_initialized || _resetting) return;
         auto cmd = getCurrentFrame().MainCommandBuffer;
         vkCmdEndRenderPass(cmd);
-        VK_CHECK(vkEndCommandBuffer(cmd));
+        VK_CHECK("VulkanRenderer::EndFrame()::vkEndCommandBuffer", vkEndCommandBuffer(cmd));
 
 
         VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -287,7 +304,7 @@ namespace OZZ {
             _recreateFrameBuffer = false;
             recreateSwapchain();
         } else {
-            VK_CHECK(result);
+            VK_CHECK("VulkanRenderer::EndFrame()::vkQueuePresentKHR", result);
         }
 
         _frameNumber++;
@@ -406,23 +423,58 @@ namespace OZZ {
     }
 
     void VulkanRenderer::cleanupSwapchain() {
-        for (auto framebuffer: _framebuffers) {
+        for (auto& framebuffer: _framebuffers) {
             vkDestroyFramebuffer(_device, framebuffer, nullptr);
+            framebuffer = VK_NULL_HANDLE;
         }
 
         for (auto& frame : _frames) {
             vkFreeCommandBuffers(_device, frame.CommandPool, 1, &frame.MainCommandBuffer);
+            frame.MainCommandBuffer = VK_NULL_HANDLE;
         }
 
         vkDestroyRenderPass(_device, _renderPass, nullptr);
+        _renderPass = VK_NULL_HANDLE;
 
-        for (auto imageView: _swapchainImageViews) {
+        for (auto& imageView: _swapchainImageViews) {
             vkDestroyImageView(_device, imageView, nullptr);
+            imageView = VK_NULL_HANDLE;
         }
 
         vkDestroyImageView(_device, _depthImageView, nullptr);
+        _depthImageView = VK_NULL_HANDLE;
         vmaDestroyImage(_allocator, _depthImage, _depthImageAllocation);
+        _depthImage = VK_NULL_HANDLE;
+    }
 
+    void VulkanRenderer::cleanResources() {
+        cleanupSwapchain();
+
+        _descriptorSetManager.Shutdown();
+
+        vkDestroySwapchainKHR(_device, _swapchain, nullptr);
+        _swapchain = VK_NULL_HANDLE;
+
+        for (auto& frame : _frames) {
+            frame.CameraData.reset();
+            vkDestroySemaphore(_device, frame.PresentSemaphore, nullptr);
+            frame.PresentSemaphore = VK_NULL_HANDLE;
+            vkDestroySemaphore(_device, frame.RenderSemaphore, nullptr);
+            frame.RenderSemaphore = VK_NULL_HANDLE;
+            vkDestroyFence(_device, frame.RenderFence, nullptr);
+            frame.RenderFence = VK_NULL_HANDLE;
+            vkDestroyCommandPool(_device, frame.CommandPool, nullptr);
+            frame.CommandPool = VK_NULL_HANDLE;
+        }
+
+        auto* resourceManager = ServiceLocator::GetResourceManager();
+        // Clear Resources
+        if (resourceManager) {
+            resourceManager->ClearGPUResourcesForReset();
+        }
+
+        vmaDestroyAllocator(_allocator);
+        _allocator = VK_NULL_HANDLE;
     }
 
     void VulkanRenderer::recreateSwapchain() {
@@ -515,7 +567,7 @@ namespace OZZ {
             }
         };
 
-        VK_CHECK(vkCreateImageView(_device, &depthImageViewCreateInfo, nullptr, &_depthImageView));
+        VK_CHECK("VulkanRenderer::createSwapchain()::vkCreateImageView", vkCreateImageView(_device, &depthImageViewCreateInfo, nullptr, &_depthImageView));
     }
 
     void VulkanRenderer::createCommands() {
@@ -525,12 +577,12 @@ namespace OZZ {
                 VkCommandPoolCreateInfo commandPoolCreateInfo = VulkanInitializers::CommandPoolCreateInfo(
                         _graphicsQueueFamily,
                         VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-                VK_CHECK(vkCreateCommandPool(_device, &commandPoolCreateInfo, nullptr, &frame.CommandPool));
+                VK_CHECK("VulkanRenderer::createCommands()::vkCreateCommandPool", vkCreateCommandPool(_device, &commandPoolCreateInfo, nullptr, &frame.CommandPool));
             }
 
             VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(
                     frame.CommandPool);
-            VK_CHECK(vkAllocateCommandBuffers(_device, &commandBufferAllocateInfo, &frame.MainCommandBuffer));
+            VK_CHECK("VulkanRenderer::createCommands()::vkAllocateCommandBuffers", vkAllocateCommandBuffers(_device, &commandBufferAllocateInfo, &frame.MainCommandBuffer));
         }
     }
 
@@ -605,7 +657,7 @@ namespace OZZ {
         renderPassCreateInfo.dependencyCount = 1;
         renderPassCreateInfo.pDependencies = dependencies;
 
-        VK_CHECK(vkCreateRenderPass(_device, &renderPassCreateInfo, nullptr, &_renderPass));
+        VK_CHECK("VulkanRenderer::createDefaultRenderPass()::vkCreateRenderPass", vkCreateRenderPass(_device, &renderPassCreateInfo, nullptr, &_renderPass));
     }
 
     void VulkanRenderer::createFramebuffers() {
@@ -626,7 +678,7 @@ namespace OZZ {
             attachments[1] = _depthImageView;
 
             framebufferCreateInfo.pAttachments = attachments;
-            VK_CHECK(vkCreateFramebuffer(_device, &framebufferCreateInfo, nullptr, &_framebuffers[i]));
+            VK_CHECK("VulkanRenderer::createFramebuffers()::vkCreateFramebuffer", vkCreateFramebuffer(_device, &framebufferCreateInfo, nullptr, &_framebuffers[i]));
         }
     }
 
@@ -637,10 +689,10 @@ namespace OZZ {
         VkSemaphoreCreateInfo semaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
         for (auto& frame : _frames) {
-            VK_CHECK(vkCreateFence(_device, &fenceCreateInfo, nullptr, &frame.RenderFence));
+            VK_CHECK("VulkanRenderer::createSyncStructures()::vkCreateFence", vkCreateFence(_device, &fenceCreateInfo, nullptr, &frame.RenderFence));
 
-            VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &frame.PresentSemaphore));
-            VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &frame.RenderSemaphore));
+            VK_CHECK("VulkanRenderer::createSyncStructures()::vkCreateSemaphore1", vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &frame.PresentSemaphore));
+            VK_CHECK("VulkanRenderer::createSyncStructures()::vkCreateSemaphore2", vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &frame.RenderSemaphore));
         }
     }
 
@@ -650,6 +702,7 @@ namespace OZZ {
 
     uint32_t VulkanRenderer::getCurrentFrameNumber() {
         return _frameNumber % MAX_FRAMES_IN_FLIGHT;
-    };
+    }
+
 
 }

@@ -67,6 +67,7 @@ namespace OZZ {
     };
 
     class Shader {
+        friend struct Material;
     public:
         virtual void Bind() = 0;
         virtual void Load(const std::string&& vertexShader, const std::string&& fragmentShader) = 0;
@@ -75,6 +76,9 @@ namespace OZZ {
 
         const ShaderData& GetShaderData() { return _data; }
 
+    private:
+        virtual void FreeResources() = 0;
+        virtual void RecreateResources() = 0;
     protected:
         ShaderData _data;
     };

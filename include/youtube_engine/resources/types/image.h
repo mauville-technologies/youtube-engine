@@ -12,7 +12,7 @@ namespace OZZ {
     class Image : public Resource {
     public:
         explicit Image(const Path& path);
-        explicit Image(const Path& path, const ImageData& data);
+        explicit Image(const Path& path, ImageData* data);
 
         ~Image() override;
 
@@ -21,8 +21,13 @@ namespace OZZ {
         void load(const Path& path);
         void unload();
 
+        void ClearGPUResource() override;
+        void RecreateGPUResource() override;
+
     private:
+        Path _path;
         std::shared_ptr<Texture> _texture { nullptr };
+        std::unique_ptr<ImageData> _image { nullptr };
     };
 
 }

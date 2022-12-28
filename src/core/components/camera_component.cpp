@@ -30,5 +30,4 @@ namespace OZZ {
                glm::perspective(glm::radians(FieldOfView), aspect, Near, Far) :
                glm::ortho(-aspect, aspect, -1.f, 1.f, Near, Far);
     }
-
 } // OZZ
