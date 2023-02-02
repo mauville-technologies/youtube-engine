@@ -22,9 +22,43 @@ add_subdirectory(external/SPRIV-Cross)
 add_subdirectory(external/assimp)
 add_subdirectory(external/openxr)
 
-file(GLOB SOURCES "src/*.cpp" "src/*/*.cpp" "src/*/*/*.cpp" "src/*/*/*/*.cpp")
+add_library(${PROJECT_NAME} "")
 
-add_library(${PROJECT_NAME} ${SOURCES})
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        src/core/entity.cpp
+        src/core/game.cpp
+        src/core/scene.cpp
+        src/core/components/camera_component.cpp
+        src/core/components/mesh_component.cpp
+        src/core/components/transform_component.cpp
+
+        src/input/input_manager.cpp
+        src/input/multiplatform_input.cpp
+        src/input/sdl_input.cpp
+
+        src/platform/configuration_manager.cpp
+        src/platform/filesystem.cpp
+        src/platform/multiplatform_window.cpp
+        src/platform/sdl_window.cpp
+
+        src/rendering/images.cpp
+        src/rendering/stbi.cpp
+        src/rendering/vulkan/vulkan_buffer.cpp
+        src/rendering/vulkan/vulkan_descriptor_set_manager.cpp
+        src/rendering/vulkan/vulkan_includes.h
+        src/rendering/vulkan/vulkan_initializers.cpp
+        src/rendering/vulkan/vulkan_pipeline_builder.cpp
+        src/rendering/vulkan/vulkan_renderer.cpp
+        src/rendering/vulkan/vulkan_shader.cpp
+        src/rendering/vulkan/vulkan_texture.cpp
+        src/rendering/vulkan/vulkan_utilities.cpp
+
+        src/resources/resource_manager.cpp
+        src/resources/types/image.cpp
+        src/resources/types/material.cpp
+        src/resources/types/mesh.cpp
+)
 
 if (WIN32)
     target_compile_definitions(${PROJECT_NAME}
@@ -69,6 +103,7 @@ target_include_directories(${PROJECT_NAME}
         external/stb
         SPIRV-Cross
         assimp
+        openxr_loader
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -87,6 +122,7 @@ target_link_libraries(${PROJECT_NAME}
         spirv-cross-core
         spirv-cross-glsl
         assimp
+        openxr_loader
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
