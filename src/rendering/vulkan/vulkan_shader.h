@@ -20,7 +20,7 @@ namespace OZZ {
 
         void Rebuild();
 
-        void Bind() override;
+        void Bind(void*) override;
         void Load(const std::string&& vertexShader, const std::string&& fragmentShader) override;
 
         [[nodiscard]] VkPipelineLayout GetPipelineLayout() { return _pipelineLayout; }

@@ -6,7 +6,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-
+#define XR_USE_GRAPHICS_API_VULKAN
 
 #ifdef __clang__
     // This file is riddled with compiler warnings that we want to suppress. So we move our vulkan includes into here.

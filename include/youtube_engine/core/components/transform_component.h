@@ -47,6 +47,10 @@ namespace OZZ {
             recalculateTransform();
         }
 
+        glm::quat GetRotationAsQuat() {
+            return glm::quat(_rotation);
+        }
+
         void Translate(MoveDirection direction, float amount) {
             auto forwardVector = glm::vec3{_transform[2]};
             auto upVector = glm::vec3{_transform[1]};

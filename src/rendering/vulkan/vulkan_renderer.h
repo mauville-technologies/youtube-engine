@@ -8,12 +8,29 @@
 #include <youtube_engine/rendering/renderer.h>
 #include <vector>
 #include <array>
+#include <set>
+#include <youtube_engine/vr/vr_subsystem.h>
 
 #include "vulkan_includes.h"
 #include "vulkan_descriptor_set_manager.h"
 
 namespace OZZ {
     constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+
+    struct VRFrameData {
+        VkCommandPool CommandPool { VK_NULL_HANDLE };
+        VkCommandBuffer MainCommandBuffer { VK_NULL_HANDLE };
+
+        VkImageView ImageView { VK_NULL_HANDLE };
+        VkFramebuffer FrameBuffer { VK_NULL_HANDLE };
+
+        VkImageView DepthImageView { VK_NULL_HANDLE };
+        VkImage DepthImage { VK_NULL_HANDLE };
+        VmaAllocation DepthAllocation { VK_NULL_HANDLE };
+        VkFormat DepthFormat { VK_FORMAT_D32_SFLOAT };
+
+        std::shared_ptr<UniformBuffer> CameraData { nullptr };
+    };
 
     struct FrameData {
         VkSemaphore PresentSemaphore { VK_NULL_HANDLE };
@@ -26,6 +43,14 @@ namespace OZZ {
         uint32_t SwapchainImageIndex { 0 };
 
         std::shared_ptr<UniformBuffer> CameraData { nullptr };
+    };
+
+    struct VulkanQueueFamilyIndices {
+        std::optional<uint32_t> GraphicsFamily;
+
+        bool IsComplete() {
+            return GraphicsFamily.has_value();
+        }
     };
 
     class VulkanRenderer : public Renderer {
@@ -41,9 +66,7 @@ namespace OZZ {
         void Reset() override;
         void Reset(RendererSettings) override;
 
-        void BeginFrame() override;
-        void RenderFrame(const SceneParams& sceneParams, const std::vector<RenderableObject>& objects) override;
-        void EndFrame() override;
+        void RenderFrame(SceneParams& sceneParams, const std::vector<RenderableObject>& objects) override;
 
         void WaitForIdle() override;
 
@@ -62,17 +85,48 @@ namespace OZZ {
         void cleanResources();
 
         void recreateSwapchain();
-        void rebuildShaders();
 
         void createSwapchain();
+        void createFrameData();
         void createCommands();
         void createDescriptorPools();
         void createDefaultRenderPass();
+        void createVRRenderPass(VkFormat format);
         void createFramebuffers();
         void createSyncStructures();
 
+        void createBufferCommands();
+        void createWindowCommands();
+        void createVRCommands();
+
+        void createWindowSwapchain();
+        void createVRSwapchain();
+
+        void createWindowFramebuffers();
+        void createVRFramebuffers();
+
+        void createVRFrameData();
+
+        void beginFrameWindow();
+        std::vector<EyePoseInfo> beginFrameVR();
+
+        void renderFrameWindow(const SceneParams& sceneParams, const std::vector<RenderableObject>& objects);
+        void renderFrameVR(const std::vector<EyePoseInfo>& eyeInfo, SceneParams& sceneParams, const std::vector<RenderableObject>& objects);
+        void renderEye(uint32_t eyeIndex, const SceneParams& sceneParams, const std::vector<RenderableObject>& objects);
+
+        void endFrameWindow();
+        void endFrameVR(const std::vector<EyePoseInfo>& eyePoses);
+
+        void renderObjects(VkCommandPool commandPool, VkCommandBuffer commandBuffer, std::shared_ptr<UniformBuffer> cameraBuffer, const std::vector<RenderableObject>& objects);
+
+        VkPhysicalDevice getPhysicalDevice();
+        std::tuple<VkDevice, VulkanQueueFamilyIndices> createLogicalDevice(VkPhysicalDevice device, const std::set<std::string>& deviceExtensions);
+
         FrameData& getCurrentFrame();
-        uint32_t getCurrentFrameNumber();
+        uint32_t getCurrentFrameNumber() const;
+
+        VulkanQueueFamilyIndices getQueueFamilyIndices(VkPhysicalDevice device);
+
     private:
 
         bool _initialized { false };
@@ -117,10 +171,13 @@ namespace OZZ {
         VkQueue _graphicsQueue;
         uint32_t _graphicsQueueFamily;
 
+        VkCommandPool _bufferCommandPool { VK_NULL_HANDLE };
+
         /*
          * RENDER PASSES
          */
         VkRenderPass _renderPass;
+        VkRenderPass _vrRenderPass { VK_NULL_HANDLE };
         std::vector<VkFramebuffer> _framebuffers {3};
 
         /*
@@ -128,7 +185,7 @@ namespace OZZ {
          */
 
         FrameData _frames[MAX_FRAMES_IN_FLIGHT];
-
+        std::vector<std::vector<VRFrameData>> _vrFrames;
 
     };
 }

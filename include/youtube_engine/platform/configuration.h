@@ -4,9 +4,10 @@
 
 #pragma once
 #include <youtube_engine/platform/window.h>
+#include <youtube_engine/platform/serializable.h>
+#include <youtube_engine/rendering/renderer.h>
 #include <unordered_map>
 #include <any>
-#include <youtube_engine/platform/serializable.h>
 
 namespace OZZ {
     enum class EngineSetting {
@@ -15,16 +16,18 @@ namespace OZZ {
         ResolutionX,
         ResolutionY,
         VR,
+        RendererAPI
     };
 
     struct EngineConfiguration : Serializable {
         WindowType WinType { WindowType::GLFW };
 
-        WindowDisplayMode WinDisplayMode { false };
-        uint32_t ResX { 1920 };
-        uint32_t ResY { 1080 };
+        WindowDisplayMode WinDisplayMode { WindowDisplayMode::Windowed };
+        uint32_t ResX { 800 };
+        uint32_t ResY { 600 };
 
         bool VR { false };
+        RendererAPI Renderer {RendererAPI::Vulkan };
 
         nlohmann::json ToJson() override {
             nlohmann::json json;
@@ -33,6 +36,7 @@ namespace OZZ {
             json["resX"] = ResX;
             json["resY"] = ResY;
             json["vr"] = VR;
+            json["rendererAPI"] = static_cast<int>(Renderer);
             return json;
         }
 
@@ -42,6 +46,7 @@ namespace OZZ {
             ResX = inJson["resX"];
             ResY = inJson["resY"];
             VR = inJson["vr"];
+            Renderer = inJson["rendererAPI"];
         }
     };
 

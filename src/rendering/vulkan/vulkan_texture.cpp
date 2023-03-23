@@ -45,8 +45,6 @@ namespace OZZ {
 
     void VulkanTexture::ResetDescriptorSet() {}
 
-    void VulkanTexture::Bind() {}
-
     void VulkanTexture::BindSamplerSettings() {}
 
     void VulkanTexture::UploadData(const ImageData &data) {
@@ -126,7 +124,6 @@ namespace OZZ {
 
         stagingBuffer->UploadData((int*)data.GetData(), size);
 
-
         VkImageSubresourceRange range {
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
             .baseMipLevel = 0,
@@ -147,7 +144,7 @@ namespace OZZ {
 
         VkCommandBufferAllocateInfo allocateInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
         allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocateInfo.commandPool = _renderer->getCurrentFrame().CommandPool;
+        allocateInfo.commandPool = _renderer->_bufferCommandPool;
         allocateInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBuffer;
@@ -184,7 +181,7 @@ namespace OZZ {
         vkQueueSubmit(_renderer->_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
         vkQueueWaitIdle(_renderer->_graphicsQueue);
 
-        vkFreeCommandBuffers(_renderer->_device, _renderer->getCurrentFrame().CommandPool, 1, &commandBuffer);
+        vkFreeCommandBuffers(_renderer->_device, _renderer->_bufferCommandPool, 1, &commandBuffer);
     }
 
     std::pair<uint32_t, uint32_t> VulkanTexture::GetSize() const {

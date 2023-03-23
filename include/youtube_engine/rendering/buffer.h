@@ -15,7 +15,7 @@ namespace OZZ {
     class VertexBuffer {
     public:
         virtual ~VertexBuffer() = default;
-        virtual void Bind() = 0;
+        virtual void Bind(void*) = 0;
         virtual void UploadData(const std::vector<Vertex>&) = 0;
 
         virtual uint64_t GetCount() = 0;
@@ -24,7 +24,7 @@ namespace OZZ {
     class IndexBuffer {
     public:
         virtual ~IndexBuffer() = default;
-        virtual void Bind() = 0;
+        virtual void Bind(void*) = 0;
         virtual void UploadData(const std::vector<uint32_t>&) = 0;
         virtual uint32_t GetCount() = 0;
     };
@@ -32,7 +32,7 @@ namespace OZZ {
     class UniformBuffer {
     public:
         virtual ~UniformBuffer() = default;
-        virtual void Bind() = 0;
+        virtual void Bind(void*) = 0;
         virtual void UploadData(int* data, uint32_t size) = 0;
     };
 }

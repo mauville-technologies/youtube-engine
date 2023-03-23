@@ -6,6 +6,7 @@
 #include <youtube_engine/input/input_manager.h>
 #include <youtube_engine/resources/resource_manager.h>
 #include <youtube_engine/platform/configuration.h>
+#include <youtube_engine/vr/vr_subsystem.h>
 
 namespace OZZ {
     class ServiceLocator {
@@ -15,10 +16,18 @@ namespace OZZ {
         static inline InputManager* GetInputManager() { return _inputManager.get(); }
         static inline ResourceManager* GetResourceManager() { return _resourceManager.get(); }
         static inline Configuration* GetConfiguration() { return _configuration.get(); }
+        static inline VirtualRealitySubsystem* GetVRSubsystem() { return _vrSubsystem.get(); }
 
         static inline void Provide(Window *window) {
             if (_window != nullptr) return;
             _window = std::unique_ptr<Window>(window);
+        }
+
+        static inline void Provide(VirtualRealitySubsystem* vrSubsystem, VRSettings settings) {
+            if (_vrSubsystem != nullptr) return;
+
+            _vrSubsystem = std::unique_ptr<VirtualRealitySubsystem>(vrSubsystem);
+            _vrSubsystem->Init(std::move(settings));
         }
 
         static inline void Provide(Renderer* renderer, RendererSettings settings) {
@@ -50,6 +59,7 @@ namespace OZZ {
             // usually opposite order of initialized.
             shutdownResourceManager();
             shutdownInputManager();
+            shutdownVRSubsystem();
             shutdownRenderer();
             shutdownWindow();
             shutdownConfiguration();
@@ -61,11 +71,22 @@ namespace OZZ {
         static inline std::unique_ptr<Renderer> _renderer = nullptr;
         static inline std::unique_ptr<InputManager> _inputManager = nullptr;
         static inline std::unique_ptr<ResourceManager> _resourceManager = nullptr;
+        static inline std::unique_ptr<VirtualRealitySubsystem> _vrSubsystem = nullptr;
         static inline std::unique_ptr<Configuration> _configuration = nullptr;
 
         static inline void shutdownWindow() {
             _window.reset();
             _window = nullptr;
+        }
+
+        static inline void shutdownVRSubsystem() {
+            if (!_vrSubsystem) return;
+            if (_renderer) {
+                _renderer->WaitForIdle();
+            }
+
+            _vrSubsystem->Shutdown();
+            _vrSubsystem = nullptr;
         }
 
         static inline void shutdownRenderer() {

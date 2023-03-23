@@ -37,19 +37,25 @@ namespace OZZ {
         RecreateResources();
     }
 
-    void VulkanShader::Bind() {
-        vkCmdBindPipeline(_renderer->getCurrentFrame().MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
+    void VulkanShader::Bind(void* handle) {
+        vkCmdBindPipeline(reinterpret_cast<VkCommandBuffer>(handle), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
 
-        auto [width, height] = ServiceLocator::GetWindow()->GetWindowExtents();
+        int width, height;
+        if (_renderer->_rendererSettings.VR) {
+            std::tie(width, height) = ServiceLocator::GetVRSubsystem()->GetSwapchainImageRectDimensions();
+        } else {
+            std::tie(width, height) = ServiceLocator::GetWindow()->GetWindowExtents();
+        }
+
         VkViewport viewport = {0.0, 0.0, static_cast<float>(width), static_cast<float>(height), 0.0, 1.0};
-        vkCmdSetViewport(_renderer->getCurrentFrame().MainCommandBuffer, 0, 1, &viewport);
+        vkCmdSetViewport(reinterpret_cast<VkCommandBuffer>(handle), 0, 1, &viewport);
 
         VkRect2D scissor {
             .offset = {0, 0},
             .extent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) },
         };
 
-        vkCmdSetScissor(_renderer->getCurrentFrame().MainCommandBuffer, 0, 1, &scissor);
+        vkCmdSetScissor(reinterpret_cast<VkCommandBuffer>(handle), 0, 1, &scissor);
     }
 
     void VulkanShader::Load(const std::string&& vertexShader, const std::string&& fragmentShader) {
@@ -129,7 +135,7 @@ namespace OZZ {
         pipelineBuilder._pipelineLayout = _pipelineLayout;
         pipelineBuilder._depthStencil = VulkanInitializers::DepthStencilCreateInfo(true, true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
-        _pipeline = pipelineBuilder.BuildPipeline(_renderer->_device, _renderer->_renderPass);
+        _pipeline = pipelineBuilder.BuildPipeline(_renderer->_device, _renderer->_rendererSettings.VR ? _renderer->_vrRenderPass : _renderer->_renderPass);
 
         vkDestroyShaderModule(_renderer->_device, fragmentShaderModule, nullptr);
         vkDestroyShaderModule(_renderer->_device, vertexShaderModule, nullptr);

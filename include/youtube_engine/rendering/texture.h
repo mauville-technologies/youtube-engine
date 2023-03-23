@@ -10,8 +10,6 @@ namespace OZZ {
     public:
         virtual ~Texture() = default;
 
-        virtual void Bind() = 0;
-
         virtual void BindSamplerSettings() = 0;
 
         virtual void UploadData(const ImageData &data) = 0;

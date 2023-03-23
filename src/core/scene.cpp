@@ -39,6 +39,8 @@ namespace OZZ {
 
         glm::mat4 viewMatrix;
         glm::mat4 projection;
+        glm::vec3 eyeposition;
+        glm::quat eyerotation;
 
         bool foundCamera { false };
 
@@ -51,6 +53,8 @@ namespace OZZ {
                 viewMatrix = CameraComponent::GetViewMatrix(transformComponent.GetTransform());
                 projection = camComponent.GetProjectionMatrix();
                 projection[1][1] *= -1;
+                eyeposition = transformComponent.GetPosition();
+                eyerotation = transformComponent.GetRotationAsQuat();
                 break;
             }
         }
@@ -75,9 +79,11 @@ namespace OZZ {
 
         SceneParams sceneParams {
             .Camera = {
-                    .View = viewMatrix,
-                    .Projection = projection
+                .View = viewMatrix,
+                .Projection = projection
             },
+            .EyePosition = eyeposition,
+            .EyeRotation = eyerotation
         };
         ServiceLocator::GetRenderer()->RenderFrame(sceneParams, ros);
     }

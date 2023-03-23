@@ -36,7 +36,7 @@ namespace OZZ {
 
 
         void UploadData(const std::vector<Vertex>& vertices) override;
-        void Bind() override;
+        void Bind(void* handle) override;
         uint64_t GetCount() override { return _count; };
 
     private:
@@ -52,7 +52,7 @@ namespace OZZ {
     public:
         explicit VulkanIndexBuffer(VulkanRenderer* renderer);
         ~VulkanIndexBuffer() override;
-        void Bind() override;
+        void Bind(void* handle) override;
 
         void UploadData(const std::vector<uint32_t> &vector) override;
 
@@ -73,7 +73,7 @@ namespace OZZ {
         explicit VulkanUniformBuffer(VulkanRenderer* renderer);
         ~VulkanUniformBuffer() override;
 
-        void Bind() override;
+        void Bind(void* handle) override;
 
         void UploadData(int* data, uint32_t size) override;
     private:

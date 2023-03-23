@@ -28,9 +28,9 @@
 [submodule "external/assimp"]
 	path = external/assimp
 	url = git@github.com:assimp/assimp.git
-[submodule "external/openxr"]
-	path = external/openxr
-	url = git@github.com:KhronosGroup/OpenXR-SDK.git
 [submodule "external/fmt"]
 	path = external/fmt
 	url = git@github.com:fmtlib/fmt.git
+[submodule "external/openxr"]
+	path = external/openxr
+	url = git@github.com:KhronosGroup/OpenXR-SDK.git

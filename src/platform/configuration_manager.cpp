@@ -116,6 +116,16 @@ namespace OZZ {
 
                     break;
                 }
+                case EngineSetting::RendererAPI: {
+                    auto newValue = std::any_cast<RendererAPI>(value);
+
+                    if (newValue != _engineConfig.Renderer) {
+                        _engineConfig.Renderer = newValue;
+                        broadcastSettingChange(setting);
+                    }
+
+                    break;
+                }
             }
 
             WriteConfig();

@@ -11,6 +11,8 @@
 #include <platform/sdl_window.h>
 #include <platform/configuration_manager.h>
 #include <rendering/vulkan/vulkan_renderer.h>
+#include "youtube_engine/vr/vr_subsystem.h"
+#include "vr/openxr/open_xr_subsystem.h"
 
 
 namespace OZZ {
@@ -31,6 +33,8 @@ namespace OZZ {
 
         initializeServices();
 
+        auto* configuration = ServiceLocator::GetConfiguration();
+        auto& engineConfiguration = configuration->GetEngineConfiguration();
         // Create scene
         _currentScene = std::make_unique<Scene>();
 
@@ -44,6 +48,14 @@ namespace OZZ {
             if (ServiceLocator::GetWindow()->Update()) {
                 _running = false;
                 continue;
+            }
+
+            if (engineConfiguration.VR) {
+                auto* vr = ServiceLocator::GetVRSubsystem();
+
+                if (vr && vr->IsInitialized()) {
+                    vr->Update();
+                }
             }
 
             if (ServiceLocator::GetInputManager()) {
@@ -62,12 +74,11 @@ namespace OZZ {
 
             if (!_rendererResetRequested) {
                 // Update physics
-                ServiceLocator::GetRenderer()->BeginFrame();
+//                ServiceLocator::GetRenderer()->BeginFrame();
 
                 _currentScene->Draw();
 
-                // Draw
-                ServiceLocator::GetRenderer()->EndFrame();
+//                ServiceLocator::GetRenderer()->EndFrame();
             } else {
                 std::cout << "Renderer resetting!" << std::endl;
                 ServiceLocator::GetRenderer()->Reset();
@@ -135,12 +146,28 @@ namespace OZZ {
                 .DisplayMode = engineConfiguration.WinDisplayMode,
         });
 
-        // initialize the renderer
-        RendererSettings settings {
-            .ApplicationName = _title
-        };
+        if (engineConfiguration.VR) {
+            VRSettings vrSettings{
+                    .ApplicationName = _title,
+                    .Renderer = engineConfiguration.Renderer
+            };
 
-        ServiceLocator::Provide(new VulkanRenderer(), settings);
+            // Start VR System
+            ServiceLocator::Provide(new OpenXRSubsystem(), vrSettings);
+        }
+
+        switch (engineConfiguration.Renderer) {
+            case RendererAPI::Vulkan: {
+                // initialize the renderer
+                RendererSettings settings {
+                        .ApplicationName = _title,
+                        .VR = engineConfiguration.VR
+                };
+
+                ServiceLocator::Provide(new VulkanRenderer(), settings);
+            }
+        }
+
         ServiceLocator::Provide(new ResourceManager());
     }
 

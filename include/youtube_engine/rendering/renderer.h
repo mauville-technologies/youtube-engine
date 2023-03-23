@@ -13,8 +13,13 @@
 #include <memory>
 
 namespace OZZ {
+    enum class RendererAPI {
+        Vulkan,
+    };
+
     struct RendererSettings {
         std::string ApplicationName;
+        bool VR { false };
     };
 
     class Renderer {
@@ -24,9 +29,7 @@ namespace OZZ {
         virtual void Init() = 0;
         virtual void Shutdown() = 0;
 
-        virtual void BeginFrame() = 0;
-        virtual void RenderFrame(const SceneParams& sceneParams, const std::vector<RenderableObject>& objects) = 0;
-        virtual void EndFrame() = 0;
+        virtual void RenderFrame(SceneParams& sceneParams, const std::vector<RenderableObject>& objects) = 0;
 
         virtual ~Renderer() = default;
 

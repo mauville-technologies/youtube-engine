@@ -17,7 +17,6 @@ namespace OZZ {
         void WriteToDescriptorSet(VkDescriptorSet descriptorSet, int dstBinding);
         void ResetDescriptorSet();
 
-        void Bind() override;
         void BindSamplerSettings() override;
 
         void UploadData(const ImageData &data) override;

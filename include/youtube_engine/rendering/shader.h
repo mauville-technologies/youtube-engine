@@ -69,7 +69,7 @@ namespace OZZ {
     class Shader {
         friend struct Material;
     public:
-        virtual void Bind() = 0;
+        virtual void Bind(void*) = 0;
         virtual void Load(const std::string&& vertexShader, const std::string&& fragmentShader) = 0;
 
         virtual ~Shader() = default;

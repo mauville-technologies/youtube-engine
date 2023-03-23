@@ -54,6 +54,8 @@ target_sources(${PROJECT_NAME}
         src/rendering/vulkan/vulkan_texture.cpp
         src/rendering/vulkan/vulkan_utilities.cpp
 
+        src/vr/openxr/open_xr_subsystem.cpp
+
         src/resources/resource_manager.cpp
         src/resources/types/image.cpp
         src/resources/types/material.cpp
@@ -153,11 +155,12 @@ target_include_directories(openxr_sandbox
     PRIVATE
         openxr_loader
         ${Vulkan_INCLUDE_DIRS}
-
+        glm
 )
 
 target_link_libraries(openxr_sandbox
     PRIVATE
         ${Vulkan_LIBRARIES}
         openxr_loader
+        glm
 )

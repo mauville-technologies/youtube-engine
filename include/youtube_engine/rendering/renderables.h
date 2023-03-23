@@ -8,6 +8,7 @@
 #include <youtube_engine/resources/types/mesh.h>
 #include <youtube_engine/resources/types/material.h>
 #include <glm/glm.hpp>
+#include "glm/detail/type_quat.hpp"
 
 namespace OZZ {
     struct RenderableObject {
@@ -27,5 +28,7 @@ namespace OZZ {
 
     struct SceneParams {
         CameraObject Camera;
+        glm::vec3 EyePosition;
+        glm::quat EyeRotation;
     };
 }

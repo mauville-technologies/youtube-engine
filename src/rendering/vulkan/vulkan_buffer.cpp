@@ -3,8 +3,8 @@
 //
 
 #include "vulkan_buffer.h"
-#include "vulkan_utilities.h"
 #include "vulkan_renderer.h"
+#include "vulkan_utilities.h"
 #include <cstring>
 
 namespace OZZ {
@@ -126,15 +126,14 @@ namespace OZZ {
                 VMA_MEMORY_USAGE_CPU_ONLY);
         stagingBuffer->UploadData((int*)vertices.data(), _bufferSize);
 
-        auto& frame = _renderer->getCurrentFrame();
-        VulkanBuffer::CopyBuffer(&_renderer->_device, &frame.CommandPool, &_renderer->_graphicsQueue,
+        VulkanBuffer::CopyBuffer(&_renderer->_device, &_renderer->_bufferCommandPool, &_renderer->_graphicsQueue,
                                  stagingBuffer.get(), _buffer.get(), _bufferSize);
     }
 
-    void VulkanVertexBuffer::Bind() {
+    void VulkanVertexBuffer::Bind(void* handle) {
         if (_buffer) {
             VkDeviceSize offset = 0;
-            vkCmdBindVertexBuffers(_renderer->getCurrentFrame().MainCommandBuffer, 0, 1, &_buffer->Buffer, &offset);
+            vkCmdBindVertexBuffers(reinterpret_cast<VkCommandBuffer>(handle), 0, 1, &_buffer->Buffer, &offset);
         }
     }
 
@@ -152,10 +151,10 @@ namespace OZZ {
         _buffer = nullptr;
     }
 
-    void VulkanIndexBuffer::Bind() {
+    void VulkanIndexBuffer::Bind(void* handle) {
         if (_buffer) {
             VkDeviceSize offset = 0;
-            vkCmdBindIndexBuffer(_renderer->getCurrentFrame().MainCommandBuffer, _buffer->Buffer, offset, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(reinterpret_cast<VkCommandBuffer>(handle), _buffer->Buffer, offset, VK_INDEX_TYPE_UINT32);
         }
     }
 
@@ -181,8 +180,7 @@ namespace OZZ {
                 VMA_MEMORY_USAGE_CPU_ONLY);
         stagingBuffer->UploadData((int*)indices.data(), _bufferSize);
 
-        auto& frame = _renderer->getCurrentFrame();
-        VulkanBuffer::CopyBuffer(&_renderer->_device, &frame.CommandPool, &_renderer->_graphicsQueue,
+        VulkanBuffer::CopyBuffer(&_renderer->_device, &_renderer->_bufferCommandPool, &_renderer->_graphicsQueue,
                                  stagingBuffer.get(), _buffer.get(), _bufferSize);
     }
 
@@ -199,7 +197,7 @@ namespace OZZ {
         _buffer = nullptr;
     }
 
-    void VulkanUniformBuffer::Bind() {}
+    void VulkanUniformBuffer::Bind(void*) {}
 
     void VulkanUniformBuffer::UploadData(int* data, uint32_t size) {
         // TODO: I might want to pad these myself at some point
