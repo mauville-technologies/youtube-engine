@@ -601,12 +601,12 @@ namespace OZZ {
         }
 
         std::vector<EyePoseInfo> eyePoses (EyeCount);
-        eyePoses[0] = {
+        eyePoses[1] = {
             .FOV = {views[1].fov.angleDown, views[1].fov.angleLeft, views[1].fov.angleRight, views[1].fov.angleUp},
             .Orientation = glm::quat{views[1].pose.orientation.w, views[1].pose.orientation.x, views[1].pose.orientation.y, views[1].pose.orientation.z},
             .Position = { views[1].pose.position.x, views[1].pose.position.y, views[1].pose.position.z }
         };
-        eyePoses[1] = {
+        eyePoses[0] = {
             .FOV = {views[0].fov.angleDown, views[0].fov.angleLeft, views[0].fov.angleRight, views[0].fov.angleUp},
             .Orientation = glm::quat{views[0].pose.orientation.w, views[0].pose.orientation.x, views[0].pose.orientation.y, views[0].pose.orientation.z},
             .Position = { views[0].pose.position.x, views[0].pose.position.y, views[0].pose.position.z }

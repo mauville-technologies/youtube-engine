@@ -644,50 +644,50 @@ namespace OZZ {
 
                         VK_CHECK("Failed to create Vulkan VR image view", vkCreateImageView(_device, &imageViewCreateInfo, nullptr, &frame.ImageView));
 
-//                        // Create depth image
-//                        VkExtent3D depthImageExtent {
-//                                .width = swapchain.Width,
-//                                .height = swapchain.Height,
-//                                .depth = 1
-//                        };
-//
-//                        _depthFormat = VK_FORMAT_D32_SFLOAT;
-//
-//                        VkImageCreateInfo depthCreateInfo {
-//                                .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-//                                .imageType = VK_IMAGE_TYPE_2D,
-//                                .format = _depthFormat,
-//                                .extent = depthImageExtent,
-//                                .mipLevels = 1,
-//                                .arrayLayers = 1,
-//                                .samples = VK_SAMPLE_COUNT_1_BIT,
-//                                .tiling = VK_IMAGE_TILING_OPTIMAL,
-//                                .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-//                        };
-//
-//                        VmaAllocationCreateInfo depthImageCreateInfo {
-//                                .usage = VMA_MEMORY_USAGE_GPU_ONLY,
-//                                .requiredFlags = VkMemoryPropertyFlags {VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}
-//                        };
-//
-//                        vmaCreateImage(_allocator, &depthCreateInfo, &depthImageCreateInfo,
-//                                       &frame.DepthImage, &frame.DepthAllocation, nullptr);
-//
-//                        VkImageViewCreateInfo depthImageViewCreateInfo {
-//                                .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-//                                .image = frame.DepthImage,
-//                                .viewType = VK_IMAGE_VIEW_TYPE_2D,
-//                                .format = _depthFormat,
-//                                .subresourceRange = {
-//                                        .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
-//                                        .baseMipLevel = 0,
-//                                        .levelCount = 1,
-//                                        .baseArrayLayer = 0,
-//                                        .layerCount = 1,
-//                                }
-//                        };
-//
-//                        VK_CHECK("VulkanRenderer::createSwapchain()::vkCreateImageView", vkCreateImageView(_device, &depthImageViewCreateInfo, nullptr, &frame.DepthImageView));
+                       // Create depth image
+                       VkExtent3D depthImageExtent {
+                               .width = swapchain.Width,
+                               .height = swapchain.Height,
+                               .depth = 1
+                       };
+
+                       _depthFormat = VK_FORMAT_D32_SFLOAT;
+
+                       VkImageCreateInfo depthCreateInfo {
+                               .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+                               .imageType = VK_IMAGE_TYPE_2D,
+                               .format = _depthFormat,
+                               .extent = depthImageExtent,
+                               .mipLevels = 1,
+                               .arrayLayers = 1,
+                               .samples = VK_SAMPLE_COUNT_1_BIT,
+                               .tiling = VK_IMAGE_TILING_OPTIMAL,
+                               .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+                       };
+
+                       VmaAllocationCreateInfo depthImageCreateInfo {
+                               .usage = VMA_MEMORY_USAGE_GPU_ONLY,
+                               .requiredFlags = VkMemoryPropertyFlags {VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}
+                       };
+
+                       vmaCreateImage(_allocator, &depthCreateInfo, &depthImageCreateInfo,
+                                      &frame.DepthImage, &frame.DepthAllocation, nullptr);
+
+                       VkImageViewCreateInfo depthImageViewCreateInfo {
+                               .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                               .image = frame.DepthImage,
+                               .viewType = VK_IMAGE_VIEW_TYPE_2D,
+                               .format = _depthFormat,
+                               .subresourceRange = {
+                                       .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+                                       .baseMipLevel = 0,
+                                       .levelCount = 1,
+                                       .baseArrayLayer = 0,
+                                       .layerCount = 1,
+                               }
+                       };
+
+                       VK_CHECK("VulkanRenderer::createSwapchain()::vkCreateImageView", vkCreateImageView(_device, &depthImageViewCreateInfo, nullptr, &frame.DepthImageView));
 
                         bufferDepth++;
                     }
@@ -788,8 +788,8 @@ namespace OZZ {
                         // create framebuffer
                         VkFramebufferCreateInfo framebufferCreateInfo { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
                         framebufferCreateInfo.renderPass = _vrRenderPass;
-                        framebufferCreateInfo.attachmentCount = 1;
-                        framebufferCreateInfo.pAttachments = &frame.ImageView;
+                        framebufferCreateInfo.attachmentCount = 2;
+                        framebufferCreateInfo.pAttachments = attachments;
                         framebufferCreateInfo.width = swapchain.Width;
                         framebufferCreateInfo.height = swapchain.Height;
                         framebufferCreateInfo.layers = 1;
@@ -931,7 +931,7 @@ namespace OZZ {
             const float nearDistance = 1000;
 
             // build projection matrix
-            sceneParams.Camera.Projection = glm::mat4{1.f};
+            sceneParams.Camera.Projection = glm::mat4{0};
             sceneParams.Camera.Projection[0][0] = 2.0f / angleWidth;
             sceneParams.Camera.Projection[2][0] = (tan(eye.FOV.AngleRight) + tan(eye.FOV.AngleLeft)) / angleWidth;
             sceneParams.Camera.Projection[1][1] = 2.0f / angleHeight;
@@ -941,8 +941,8 @@ namespace OZZ {
             sceneParams.Camera.Projection[2][3] = -1;
 
             sceneParams.Camera.View = glm::inverse(
-                glm::translate(glm::mat4(1.0f), eye.Position)
-                * glm::mat4_cast(eye.Orientation)
+                glm::translate(glm::mat4(1.0f), sceneParams.EyePosition + eye.Position)
+                * glm::mat4_cast(eye.Orientation * sceneParams.EyeRotation)
             );
 
             renderEye(currentEye, sceneParams, objects);

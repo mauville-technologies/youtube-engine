@@ -48,7 +48,8 @@ namespace OZZ {
         }
 
         glm::quat GetRotationAsQuat() {
-            return glm::quat(_rotation);
+            glm::vec3 newRotation = {_rotation.x, _rotation.z, _rotation.y };
+            return glm::quat(newRotation);
         }
 
         void Translate(MoveDirection direction, float amount) {
