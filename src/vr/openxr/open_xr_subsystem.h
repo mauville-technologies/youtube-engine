@@ -39,6 +39,7 @@ namespace OZZ {
         };
 
         void Init(VRSettings) override;
+        void Reset() override;
         void Shutdown() override;
 
         bool Update() override;
@@ -57,6 +58,8 @@ namespace OZZ {
         void createSpace();
         void createSwapchains();
 
+        void teardown();
+        void spinup();
 
         PFN_xrVoidFunction getXRFunction(std::string functionName);
 
@@ -88,6 +91,7 @@ namespace OZZ {
 
         void createVulkanSwapchains();
     private:
+        VRSettings _vrSettings {};
         RendererAPI _renderer;
 
         XrInstance _instance { XR_NULL_HANDLE };

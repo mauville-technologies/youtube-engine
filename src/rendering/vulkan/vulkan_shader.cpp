@@ -185,7 +185,7 @@ namespace OZZ {
                     }
                     std::cout << "Push constants present!" << std::endl;
                     _pushConstants.offset = 0;
-                    _pushConstants.size = resource.Size;
+                    _pushConstants.size = static_cast<uint32_t>(resource.Size);
                     _pushConstants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
                     pushConstantAdded = true;
                     break;

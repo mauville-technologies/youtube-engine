@@ -38,18 +38,15 @@ namespace OZZ {
         createSwapchain();
         std::cout << "Done Creating Swapchains" << std::endl;
         createCommands();
-        std::cout << "Done Creating Commands" << std::endl;
-        createDescriptorPools();
-        std::cout << "Done Descriptor Pools" << std::endl;
 
-//        createDefaultRenderPass();
-        createVRRenderPass(VK_FORMAT_R8G8B8A8_SRGB);
+        createRenderPass();
+
         std::cout << "Done Creating Render pass" << std::endl;
 
         createFramebuffers();
         std::cout << "Done Creating Frame buffers" << std::endl;
 
-//        createSyncStructures();
+        createSyncStructures();
 
         _initialized = true;
     }
@@ -98,12 +95,6 @@ namespace OZZ {
     }
 
     void VulkanRenderer::RenderFrame(SceneParams &sceneParams, const vector<RenderableObject> &objects) {
-//        beginFrameWindow();
-//            if (!_initialized || _resetting) return;
-//            renderFrameWindow(sceneParams, objects);
-//        endFrameWindow();
-        _frameNumber++;
-
         if (_rendererSettings.VR) {
             auto* vr = ServiceLocator::GetVRSubsystem();
             if (!vr || !vr->IsInitialized()) {
@@ -116,12 +107,16 @@ namespace OZZ {
             auto eyePoses = beginFrameVR();
 
             if (eyePoses.empty()) return;
-//            if (!_initialized || _resetting) return;
             renderFrameVR(eyePoses, sceneParams, objects);
 
             endFrameVR(eyePoses);
+        } else {
+            beginFrameWindow();
+                if (!_initialized || _resetting) return;
+                renderFrameWindow(sceneParams, objects);
+            endFrameWindow();
+            _frameNumber++;
         }
-
     }
 
     void VulkanRenderer::WaitForIdle() {
@@ -172,7 +167,7 @@ namespace OZZ {
                 }
 
                 auto graphicsRequirements = xr->GetVulkanGraphicsRequirements();
-                vulkanVersion = graphicsRequirements.minApiVersionSupported;
+                vulkanVersion = static_cast<uint32_t>(graphicsRequirements.minApiVersionSupported);
             }
         }
 
@@ -265,7 +260,6 @@ namespace OZZ {
         // Clean VR swapchain
         for (auto& eyeFrames : _vrFrames) {
             for (auto& eyeFrame: eyeFrames) {
-
                 if (eyeFrame.FrameBuffer != VK_NULL_HANDLE) {
                     vkDestroyFramebuffer(_device, eyeFrame.FrameBuffer, nullptr);
                     eyeFrame.FrameBuffer = VK_NULL_HANDLE;
@@ -297,6 +291,7 @@ namespace OZZ {
             }
         }
 
+        _vrFrames.clear();
         for (auto& framebuffer: _framebuffers) {
             vkDestroyFramebuffer(_device, framebuffer, nullptr);
             framebuffer = VK_NULL_HANDLE;
@@ -356,7 +351,10 @@ namespace OZZ {
             frame.CommandPool = VK_NULL_HANDLE;
         }
 
-        vkDestroyCommandPool(_device, _bufferCommandPool, nullptr);
+        if (_bufferCommandPool == VK_NULL_HANDLE) {
+            vkDestroyCommandPool(_device, _bufferCommandPool, nullptr);
+            _bufferCommandPool = VK_NULL_HANDLE;
+        }
 
         auto* resourceManager = ServiceLocator::GetResourceManager();
         // Clear Resources
@@ -382,38 +380,30 @@ namespace OZZ {
 
         createSwapchain();
         createCommands();
-        createDefaultRenderPass();
+        createRenderPass();
         createFramebuffers();
     }
 
 
     void VulkanRenderer::createSwapchain() {
-//        createWindowSwapchain();
-
         if (_rendererSettings.VR) {
             createVRSwapchain();
-        }
-    }
-
-
-    void VulkanRenderer::createFrameData() {
-        if (_rendererSettings.VR) {
-            createVRFrameData();
+        } else {
+            createWindowSwapchain();
         }
     }
 
     void VulkanRenderer::createCommands() {
         createBufferCommands();
-//        createWindowCommands();
 
         if (_rendererSettings.VR) {
             createVRCommands();
+        } else {
+            createWindowCommands();
         }
     }
 
-    void VulkanRenderer::createDescriptorPools() {}
-
-    void VulkanRenderer::createDefaultRenderPass() {
+    void VulkanRenderer::createWindowRenderPass() {
         VkAttachmentDescription colorAttachment{
                 .format = _swapchainImageFormat,
                 .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -422,7 +412,7 @@ namespace OZZ {
                 .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                 .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
                 .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+                .finalLayout =  VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
         };
 
         VkAttachmentReference colorAttachmentRef{
@@ -473,7 +463,7 @@ namespace OZZ {
         renderPassCreateInfo.dependencyCount = 1;
         renderPassCreateInfo.pDependencies = dependencies;
 
-        VK_CHECK("VulkanRenderer::createDefaultRenderPass()::vkCreateRenderPass", vkCreateRenderPass(_device, &renderPassCreateInfo, nullptr, &_renderPass));
+        VK_CHECK("VulkanRenderer::createWindowRenderPass()::vkCreateRenderPass", vkCreateRenderPass(_device, &renderPassCreateInfo, nullptr, &_renderPass));
     }
 
     void VulkanRenderer::createVRRenderPass(VkFormat format) {
@@ -515,10 +505,19 @@ namespace OZZ {
     }
 
     void VulkanRenderer::createFramebuffers() {
-//        createWindowFramebuffers();
 
         if (_rendererSettings.VR) {
             createVRFramebuffers();
+        } else {
+            createWindowFramebuffers();
+        }
+    }
+
+    void VulkanRenderer::createRenderPass() {
+        if (_rendererSettings.VR) {
+            createVRRenderPass(VK_FORMAT_R8G8B8A8_SRGB);
+        } else {
+            createWindowRenderPass();
         }
     }
 
@@ -927,8 +926,8 @@ namespace OZZ {
 
             float angleWidth = tan(eye.FOV.AngleRight) - tan(eye.FOV.AngleLeft);
             float angleHeight = tan(eye.FOV.AngleDown) - tan(eye.FOV.AngleUp);
-            const float farDistance = 0.01;
-            const float nearDistance = 1000;
+            const float farDistance = 0.01f;
+            const float nearDistance = 1000.f;
 
             // build projection matrix
             sceneParams.Camera.Projection = glm::mat4{0};
@@ -1264,7 +1263,7 @@ namespace OZZ {
         for (const auto& extension: deviceExtensions) {
             dExtensions.emplace_back(extension.c_str());
         }
-        createInfo.enabledExtensionCount = dExtensions.size();
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(dExtensions.size());
         createInfo.ppEnabledExtensionNames = dExtensions.data();
 
         createInfo.enabledLayerCount = 0;
@@ -1305,4 +1304,6 @@ namespace OZZ {
     uint32_t VulkanRenderer::getCurrentFrameNumber() const {
         return _frameNumber % MAX_FRAMES_IN_FLIGHT;
     }
+
+
 }

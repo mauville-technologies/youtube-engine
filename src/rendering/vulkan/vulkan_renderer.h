@@ -87,17 +87,16 @@ namespace OZZ {
         void recreateSwapchain();
 
         void createSwapchain();
-        void createFrameData();
         void createCommands();
-        void createDescriptorPools();
-        void createDefaultRenderPass();
-        void createVRRenderPass(VkFormat format);
         void createFramebuffers();
         void createSyncStructures();
-
+        void createRenderPass();
         void createBufferCommands();
         void createWindowCommands();
         void createVRCommands();
+
+        void createWindowRenderPass();
+        void createVRRenderPass(VkFormat format);
 
         void createWindowSwapchain();
         void createVRSwapchain();

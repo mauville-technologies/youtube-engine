@@ -74,13 +74,12 @@ namespace OZZ {
 
             if (!_rendererResetRequested) {
                 // Update physics
-//                ServiceLocator::GetRenderer()->BeginFrame();
-
                 _currentScene->Draw();
-
-//                ServiceLocator::GetRenderer()->EndFrame();
             } else {
                 std::cout << "Renderer resetting!" << std::endl;
+                if (ServiceLocator::GetVRSubsystem()) {
+                    ServiceLocator::GetVRSubsystem()->Reset();
+                }
                 ServiceLocator::GetRenderer()->Reset();
                 std::cout << "Renderer Has Reset" << std::endl;
                 _rendererResetRequested = false;

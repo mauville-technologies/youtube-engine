@@ -13,31 +13,19 @@ namespace OZZ {
         std::cout << "Initializing OpenXR Subsystem" << std::endl;
         _initialized = true;
         _renderer = settings.Renderer;
+        _vrSettings = settings;
 
-        createInstance(settings);
-        createDebugMessenger();
-        getHMDSystem();
-        getGraphicsInstanceRequirements(settings);
+        spinup();
 
     }
 
+    void OpenXRSubsystem::Reset() {
+        teardown();
+        spinup();
+    }
+
     void OpenXRSubsystem::Shutdown() {
-        if (_renderer == RendererAPI::Vulkan) {
-            _vulkanSwapchains.clear();
-            EndSessionVulkan();
-        }
-
-        if (_debugMessenger != XR_NULL_HANDLE) {
-            auto destroyDebugMessengerFunc = reinterpret_cast<PFN_xrDestroyDebugUtilsMessengerEXT>(getXRFunction(
-                    "xrDestroyDebugUtilsMessengerEXT"));
-            destroyDebugMessengerFunc(_debugMessenger);
-            _debugMessenger = XR_NULL_HANDLE;
-        }
-
-        if (_instance != XR_NULL_HANDLE) {
-            xrDestroyInstance(_instance);
-            _instance = XR_NULL_HANDLE;
-        }
+        teardown();
 
         _initialized = false;
     }
@@ -373,6 +361,32 @@ namespace OZZ {
         if (_renderer == RendererAPI::Vulkan) {
             createVulkanSwapchains();
         }
+    }
+
+    void OpenXRSubsystem::teardown() {
+        if (_renderer == RendererAPI::Vulkan) {
+            _vulkanSwapchains.clear();
+            EndSessionVulkan();
+        }
+
+        if (_debugMessenger != XR_NULL_HANDLE) {
+            auto destroyDebugMessengerFunc = reinterpret_cast<PFN_xrDestroyDebugUtilsMessengerEXT>(getXRFunction(
+                    "xrDestroyDebugUtilsMessengerEXT"));
+            destroyDebugMessengerFunc(_debugMessenger);
+            _debugMessenger = XR_NULL_HANDLE;
+        }
+
+        if (_instance != XR_NULL_HANDLE) {
+            xrDestroyInstance(_instance);
+            _instance = XR_NULL_HANDLE;
+        }
+    }
+
+    void OpenXRSubsystem::spinup() {
+        createInstance(_vrSettings);
+        createDebugMessenger();
+        getHMDSystem();
+        getGraphicsInstanceRequirements(_vrSettings);
     }
 
     VkPhysicalDevice OpenXRSubsystem::GetVulkanPhysicalDevice(VkInstance vulkanInstance) {
@@ -711,4 +725,7 @@ namespace OZZ {
             std::cerr << "Failed to release swapchain image: " << result << std::endl;
         }
     }
+
+
+
 }

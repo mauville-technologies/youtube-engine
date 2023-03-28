@@ -35,6 +35,7 @@ namespace OZZ {
     class VirtualRealitySubsystem {
     public:
         virtual void Init(VRSettings) = 0;
+        virtual void Reset() = 0;
         virtual void Shutdown() = 0;
         virtual bool Update() = 0;
 
