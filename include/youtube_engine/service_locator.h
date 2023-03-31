@@ -59,8 +59,8 @@ namespace OZZ {
             // usually opposite order of initialized.
             shutdownResourceManager();
             shutdownInputManager();
-            shutdownVRSubsystem();
             shutdownRenderer();
+            shutdownVRSubsystem();
             shutdownWindow();
             shutdownConfiguration();
         }

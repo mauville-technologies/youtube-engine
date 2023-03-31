@@ -9,7 +9,7 @@
 #include <rendering/vulkan/vulkan_renderer.h>
 
 namespace OZZ {
-    constexpr uint8_t MAX_FRAMES = 2;
+    constexpr uint8_t MAX_FRAMES = 3;
 
     class VulkanWindowRendererExtension : public RendererExtension {
         struct FrameData {

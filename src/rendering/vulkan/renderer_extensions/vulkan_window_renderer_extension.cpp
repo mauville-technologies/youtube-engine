@@ -291,10 +291,10 @@ namespace OZZ {
         VK_CHECK("VulkanRenderer::BeginFrame()::vkWaitForFences", vkWaitForFences(_renderer->_device, 1, &frame.RenderFence, true, 1000000000)); // 1
         VK_CHECK("VulkanRenderer::BeginFrame()::vkResetFences", vkResetFences(_renderer->_device, 1, &frame.RenderFence));                     // 0
 
-        _renderer->_descriptorSetManager.NextDescriptorFrame();
-
         VkResult result = vkAcquireNextImageKHR(_renderer->_device, _swapchain, 1000000000, frame.PresentSemaphore,
                                                 VK_NULL_HANDLE, &frame.SwapchainImageIndex);
+
+        _renderer->_descriptorSetManager.NextDescriptorFrame();
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR ) {
             recreate();

@@ -20,20 +20,7 @@
 namespace OZZ {
     constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
-    struct VRFrameData {
-        VkCommandPool CommandPool { VK_NULL_HANDLE };
-        VkCommandBuffer MainCommandBuffer { VK_NULL_HANDLE };
 
-        VkImageView ImageView { VK_NULL_HANDLE };
-        VkFramebuffer FrameBuffer { VK_NULL_HANDLE };
-
-        VkImageView DepthImageView { VK_NULL_HANDLE };
-        VkImage DepthImage { VK_NULL_HANDLE };
-        VmaAllocation DepthAllocation { VK_NULL_HANDLE };
-        VkFormat DepthFormat { VK_FORMAT_D32_SFLOAT };
-
-        std::shared_ptr<UniformBuffer> CameraData { nullptr };
-    };
 
     struct VulkanQueueFamilyIndices {
         std::optional<uint32_t> GraphicsFamily;
@@ -73,32 +60,9 @@ namespace OZZ {
         void Shutdown() override;
 
         void initCore();
-        void cleanupSwapchain();
         void cleanResources();
 
-        void recreateSwapchain();
-
-        void createSwapchain();
-        void createCommands();
-        void createFramebuffers();
-        void createRenderPass();
         void createBufferCommands();
-        void createVRCommands();
-
-        void createVRRenderPass(VkFormat format);
-
-        void createVRSwapchain();
-
-        void createVRFramebuffers();
-
-        void createVRFrameData();
-
-        std::vector<EyePoseInfo> beginFrameVR();
-
-        void renderFrameVR(const std::vector<EyePoseInfo>& eyeInfo, SceneParams& sceneParams, const std::vector<RenderableObject>& objects);
-        void renderEye(uint32_t eyeIndex, const SceneParams& sceneParams, const std::vector<RenderableObject>& objects);
-
-        void endFrameVR(const std::vector<EyePoseInfo>& eyePoses);
 
         void renderObjects(VkCommandPool commandPool, VkCommandBuffer commandBuffer, std::shared_ptr<UniformBuffer> cameraBuffer, const std::vector<RenderableObject>& objects);
 
@@ -137,14 +101,6 @@ namespace OZZ {
         uint32_t _graphicsQueueFamily;
 
         VkCommandPool _bufferCommandPool { VK_NULL_HANDLE };
-
-        VkRenderPass _vrRenderPass { VK_NULL_HANDLE };
-        VkFormat _depthFormat;
-
-        /*
-         * SYNCHRONIZATION OBJECTS
-         */
-        std::vector<std::vector<VRFrameData>> _vrFrames;
 
         std::unique_ptr<RendererExtension> _rendererExtension { nullptr };
     };

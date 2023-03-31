@@ -14,6 +14,7 @@
 namespace OZZ {
     class OpenXRSubsystem : public VirtualRealitySubsystem {
         friend class VulkanRenderer;
+        friend class VulkanVRRendererExtension;
 
     public:
         static inline uint32_t BAD_INDEX = 400;

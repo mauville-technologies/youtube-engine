@@ -365,7 +365,6 @@ namespace OZZ {
 
     void OpenXRSubsystem::teardown() {
         if (_renderer == RendererAPI::Vulkan) {
-            _vulkanSwapchains.clear();
             EndSessionVulkan();
         }
 
@@ -463,6 +462,7 @@ namespace OZZ {
 
     void OpenXRSubsystem::EndSessionVulkan() {
         if (_session != XR_NULL_HANDLE) {
+            _vulkanSwapchains.clear();
             xrDestroySession(_session);
             _session = XR_NULL_HANDLE;
         }
