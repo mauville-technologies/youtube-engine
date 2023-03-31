@@ -725,7 +725,4 @@ namespace OZZ {
             std::cerr << "Failed to release swapchain image: " << result << std::endl;
         }
     }
-
-
-
 }

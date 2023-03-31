@@ -11,13 +11,14 @@
 
 #include <youtube_engine/service_locator.h>
 #include <vr/openxr/open_xr_subsystem.h>
+#include <rendering/vulkan/renderer_extensions/vulkan_vr_renderer_extension.h>
+#include <rendering/vulkan/renderer_extensions/vulkan_window_renderer_extension.h>
 
 #include "vulkan_initializers.h"
 #include "vulkan_shader.h"
 #include "vulkan_buffer.h"
 #include "vulkan_texture.h"
 #include "vulkan_utilities.h"
-
 
 namespace OZZ {
     void VulkanRenderer::Init() {
@@ -33,20 +34,17 @@ namespace OZZ {
                 auto *xr = dynamic_cast<OpenXRSubsystem *>(vr);
                 xr->CreateSessionVulkan(_instance, _physicalDevice, _device, _graphicsQueueFamily);
             }
+
+            createSwapchain();
+            createCommands();
+            createRenderPass();
+            createFramebuffers();
+            _rendererExtension = std::make_unique<VulkanVRRendererExtension>();
+
+        } else {
+            createBufferCommands();
+            _rendererExtension = std::make_unique<VulkanWindowRendererExtension>(this);
         }
-
-        createSwapchain();
-        std::cout << "Done Creating Swapchains" << std::endl;
-        createCommands();
-
-        createRenderPass();
-
-        std::cout << "Done Creating Render pass" << std::endl;
-
-        createFramebuffers();
-        std::cout << "Done Creating Frame buffers" << std::endl;
-
-        createSyncStructures();
 
         _initialized = true;
     }
@@ -67,13 +65,10 @@ namespace OZZ {
 
         vkDestroyDevice(_device, nullptr);
         _device = VK_NULL_HANDLE;
-        vkDestroySurfaceKHR(_instance, _surface, nullptr);
-        _surface = VK_NULL_HANDLE;
         vkb::destroy_debug_utils_messenger(_instance, _debug_messenger);
         vkDestroyInstance(_instance, nullptr);
         _instance = VK_NULL_HANDLE;
         _initialized = false;
-        _frameNumber = 0;
     }
 
     void VulkanRenderer::Reset() {
@@ -111,11 +106,7 @@ namespace OZZ {
 
             endFrameVR(eyePoses);
         } else {
-            beginFrameWindow();
-                if (!_initialized || _resetting) return;
-                renderFrameWindow(sceneParams, objects);
-            endFrameWindow();
-            _frameNumber++;
+            _rendererExtension->RenderFrame(sceneParams, objects);
         }
     }
 
@@ -195,13 +186,7 @@ namespace OZZ {
         _instance = vkb_inst.instance;
         _debug_messenger = vkb_inst.debug_messenger;
 
-        // request vulkan surface
-        std::unordered_map<SurfaceArgs, int*> surfaceArgs{
-                {SurfaceArgs::INSTANCE,    (int*)_instance},
-                {SurfaceArgs::OUT_SURFACE, (int*)&_surface}
-        };
 
-        ServiceLocator::GetWindow()->RequestDrawSurface(surfaceArgs);
 
         _physicalDevice = getPhysicalDevice();
 
@@ -292,35 +277,11 @@ namespace OZZ {
         }
 
         _vrFrames.clear();
-        for (auto& framebuffer: _framebuffers) {
-            vkDestroyFramebuffer(_device, framebuffer, nullptr);
-            framebuffer = VK_NULL_HANDLE;
-        }
-
-        for (auto& frame : _frames) {
-            vkFreeCommandBuffers(_device, frame.CommandPool, 1, &frame.MainCommandBuffer);
-            frame.MainCommandBuffer = VK_NULL_HANDLE;
-        }
 
         if (_vrRenderPass != VK_NULL_HANDLE) {
             vkDestroyRenderPass(_device, _vrRenderPass, nullptr);
             _vrRenderPass = VK_NULL_HANDLE;
         }
-
-        if (_renderPass != VK_NULL_HANDLE) {
-            vkDestroyRenderPass(_device, _renderPass, nullptr);
-            _renderPass = VK_NULL_HANDLE;
-        }
-
-        for (auto& imageView: _swapchainImageViews) {
-            vkDestroyImageView(_device, imageView, nullptr);
-            imageView = VK_NULL_HANDLE;
-        }
-
-        vkDestroyImageView(_device, _depthImageView, nullptr);
-        _depthImageView = VK_NULL_HANDLE;
-        vmaDestroyImage(_allocator, _depthImage, _depthImageAllocation);
-        _depthImage = VK_NULL_HANDLE;
     }
 
     void VulkanRenderer::cleanResources() {
@@ -328,9 +289,7 @@ namespace OZZ {
 
         _descriptorSetManager.Shutdown();
 
-        vkDestroySwapchainKHR(_device, _swapchain, nullptr);
-        _swapchain = VK_NULL_HANDLE;
-
+        _rendererExtension.reset();
         if (_rendererSettings.VR) {
             for (auto &eye : _vrFrames) {
                 for (auto &frame : eye) {
@@ -339,19 +298,7 @@ namespace OZZ {
             }
         }
 
-        for (auto& frame : _frames) {
-            frame.CameraData.reset();
-            vkDestroySemaphore(_device, frame.PresentSemaphore, nullptr);
-            frame.PresentSemaphore = VK_NULL_HANDLE;
-            vkDestroySemaphore(_device, frame.RenderSemaphore, nullptr);
-            frame.RenderSemaphore = VK_NULL_HANDLE;
-            vkDestroyFence(_device, frame.RenderFence, nullptr);
-            frame.RenderFence = VK_NULL_HANDLE;
-            vkDestroyCommandPool(_device, frame.CommandPool, nullptr);
-            frame.CommandPool = VK_NULL_HANDLE;
-        }
-
-        if (_bufferCommandPool == VK_NULL_HANDLE) {
+        if (_bufferCommandPool != VK_NULL_HANDLE) {
             vkDestroyCommandPool(_device, _bufferCommandPool, nullptr);
             _bufferCommandPool = VK_NULL_HANDLE;
         }
@@ -389,7 +336,6 @@ namespace OZZ {
         if (_rendererSettings.VR) {
             createVRSwapchain();
         } else {
-            createWindowSwapchain();
         }
     }
 
@@ -399,71 +345,7 @@ namespace OZZ {
         if (_rendererSettings.VR) {
             createVRCommands();
         } else {
-            createWindowCommands();
         }
-    }
-
-    void VulkanRenderer::createWindowRenderPass() {
-        VkAttachmentDescription colorAttachment{
-                .format = _swapchainImageFormat,
-                .samples = VK_SAMPLE_COUNT_1_BIT,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                .finalLayout =  VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-        };
-
-        VkAttachmentReference colorAttachmentRef{
-                .attachment = 0,
-                .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        };
-
-        VkAttachmentDescription depthAttachment{
-                .flags = 0,
-                .format = _depthFormat,
-                .samples = VK_SAMPLE_COUNT_1_BIT,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-        };
-
-        VkAttachmentReference depthAttachmentRef{
-                .attachment = 1,
-                .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        };
-
-        VkSubpassDescription subpass{
-                .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-                .colorAttachmentCount = 1,
-                .pColorAttachments = &colorAttachmentRef,
-                .pDepthStencilAttachment = &depthAttachmentRef
-        };
-
-        VkSubpassDependency depth_dependency = {};
-        depth_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        depth_dependency.dstSubpass = 0;
-        depth_dependency.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-        depth_dependency.srcAccessMask = 0;
-        depth_dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-        depth_dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-        VkSubpassDependency dependencies[] { depth_dependency };
-
-        VkAttachmentDescription attachments[] {colorAttachment, depthAttachment};
-        VkRenderPassCreateInfo renderPassCreateInfo{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-        renderPassCreateInfo.attachmentCount = 2;
-        renderPassCreateInfo.pAttachments = attachments;
-        renderPassCreateInfo.subpassCount = 1;
-        renderPassCreateInfo.pSubpasses = &subpass;
-        renderPassCreateInfo.dependencyCount = 1;
-        renderPassCreateInfo.pDependencies = dependencies;
-
-        VK_CHECK("VulkanRenderer::createWindowRenderPass()::vkCreateRenderPass", vkCreateRenderPass(_device, &renderPassCreateInfo, nullptr, &_renderPass));
     }
 
     void VulkanRenderer::createVRRenderPass(VkFormat format) {
@@ -509,7 +391,6 @@ namespace OZZ {
         if (_rendererSettings.VR) {
             createVRFramebuffers();
         } else {
-            createWindowFramebuffers();
         }
     }
 
@@ -517,99 +398,7 @@ namespace OZZ {
         if (_rendererSettings.VR) {
             createVRRenderPass(VK_FORMAT_R8G8B8A8_SRGB);
         } else {
-            createWindowRenderPass();
         }
-    }
-
-    void VulkanRenderer::createSyncStructures() {
-        VkFenceCreateInfo fenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-        VkSemaphoreCreateInfo semaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-
-        for (auto& frame : _frames) {
-            VK_CHECK("VulkanRenderer::createSyncStructures()::vkCreateFence", vkCreateFence(_device, &fenceCreateInfo, nullptr, &frame.RenderFence));
-
-            VK_CHECK("VulkanRenderer::createSyncStructures()::vkCreateSemaphore1", vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &frame.PresentSemaphore));
-            VK_CHECK("VulkanRenderer::createSyncStructures()::vkCreateSemaphore2", vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &frame.RenderSemaphore));
-        }
-    }
-
-    void VulkanRenderer::createWindowSwapchain() {
-
-        VkSwapchainKHR oldSwapchain = _swapchain;
-
-        auto[width, height] = ServiceLocator::GetWindow()->GetWindowExtents();
-        _windowExtent.width = width;
-        _windowExtent.height = height;
-
-        vkb::SwapchainBuilder swapchainBuilder{_physicalDevice, _device, _surface};
-
-        vkb::Swapchain vkbSwapchain = swapchainBuilder
-                .set_desired_format({
-                                            .format = VK_FORMAT_R8G8B8A8_SRGB,
-                                            .colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
-                                    })
-                .set_desired_present_mode(VK_PRESENT_MODE_FIFO_RELAXED_KHR)     // Hard VSync
-                .set_desired_extent(width, height)
-                .set_old_swapchain(oldSwapchain)
-                .build()
-                .value();
-
-        // Store swapchain and all its related images
-        _swapchain = vkbSwapchain.swapchain;
-        _swapchainImages = vkbSwapchain.get_images().value();
-        _swapchainImageViews = vkbSwapchain.get_image_views().value();
-        _swapchainImageFormat = vkbSwapchain.image_format;
-
-        if (oldSwapchain) {
-            vkDestroySwapchainKHR(_device, oldSwapchain, nullptr);
-        }
-
-        // Create depth image
-        VkExtent3D depthImageExtent {
-                .width = _windowExtent.width,
-                .height = _windowExtent.height,
-                .depth = 1
-        };
-
-        _depthFormat = VK_FORMAT_D32_SFLOAT;
-
-        VkImageCreateInfo depthCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-                .imageType = VK_IMAGE_TYPE_2D,
-                .format = _depthFormat,
-                .extent = depthImageExtent,
-                .mipLevels = 1,
-                .arrayLayers = 1,
-                .samples = VK_SAMPLE_COUNT_1_BIT,
-                .tiling = VK_IMAGE_TILING_OPTIMAL,
-                .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-        };
-
-        VmaAllocationCreateInfo depthImageCreateInfo {
-                .usage = VMA_MEMORY_USAGE_GPU_ONLY,
-                .requiredFlags = VkMemoryPropertyFlags {VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}
-        };
-
-        vmaCreateImage(_allocator, &depthCreateInfo, &depthImageCreateInfo,
-                       &_depthImage, &_depthImageAllocation, nullptr);
-
-        VkImageViewCreateInfo depthImageViewCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                .image = _depthImage,
-                .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                .format = _depthFormat,
-                .subresourceRange = {
-                        .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
-                        .baseMipLevel = 0,
-                        .levelCount = 1,
-                        .baseArrayLayer = 0,
-                        .layerCount = 1,
-                }
-        };
-
-        VK_CHECK("VulkanRenderer::createSwapchain()::vkCreateImageView", vkCreateImageView(_device, &depthImageViewCreateInfo, nullptr, &_depthImageView));
     }
 
     void VulkanRenderer::createVRSwapchain() {
@@ -688,7 +477,7 @@ namespace OZZ {
 
                        VK_CHECK("VulkanRenderer::createSwapchain()::vkCreateImageView", vkCreateImageView(_device, &depthImageViewCreateInfo, nullptr, &frame.DepthImageView));
 
-                        bufferDepth++;
+                       bufferDepth++;
                     }
                     eyeIndex++;
                 }
@@ -702,21 +491,6 @@ namespace OZZ {
                     _graphicsQueueFamily,
                     VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
             VK_CHECK("VulkanRenderer::createCommands()::vkCreateCommandPool", vkCreateCommandPool(_device, &commandPoolCreateInfo, nullptr, &_bufferCommandPool));
-        }
-    }
-
-    void VulkanRenderer::createWindowCommands() {
-        for (auto& frame : _frames) {
-            if (frame.CommandPool == VK_NULL_HANDLE) {
-                VkCommandPoolCreateInfo commandPoolCreateInfo = VulkanInitializers::CommandPoolCreateInfo(
-                        _graphicsQueueFamily,
-                        VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-                VK_CHECK("VulkanRenderer::createCommands()::vkCreateCommandPool", vkCreateCommandPool(_device, &commandPoolCreateInfo, nullptr, &frame.CommandPool));
-            }
-
-            VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(
-                    frame.CommandPool);
-            VK_CHECK("VulkanRenderer::createCommands()::vkAllocateCommandBuffers", vkAllocateCommandBuffers(_device, &commandBufferAllocateInfo, &frame.MainCommandBuffer));
         }
     }
 
@@ -739,28 +513,6 @@ namespace OZZ {
                 bufferDepth++;
             }
             eyeIndex++;
-        }
-    }
-
-    void VulkanRenderer::createWindowFramebuffers() {
-        VkFramebufferCreateInfo framebufferCreateInfo{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
-        framebufferCreateInfo.renderPass = _renderPass;
-        framebufferCreateInfo.attachmentCount = 2;
-        framebufferCreateInfo.width = _windowExtent.width;
-        framebufferCreateInfo.height = _windowExtent.height;
-        framebufferCreateInfo.layers = 1;
-
-        const auto swapchainImageCount = static_cast<uint32_t>(_swapchainImages.size());
-        _framebuffers.resize(swapchainImageCount);
-
-
-        for (uint32_t i = 0; i < swapchainImageCount; i++) {
-            VkImageView attachments[2];
-            attachments[0] = _swapchainImageViews[i];
-            attachments[1] = _depthImageView;
-
-            framebufferCreateInfo.pAttachments = attachments;
-            VK_CHECK("VulkanRenderer::createFramebuffers()::vkCreateFramebuffer", vkCreateFramebuffer(_device, &framebufferCreateInfo, nullptr, &_framebuffers[i]));
         }
     }
 
@@ -827,60 +579,6 @@ namespace OZZ {
         }
     }
 
-    void VulkanRenderer::beginFrameWindow() {
-        VK_CHECK("VulkanRenderer::BeginFrame()::vkWaitForFences", vkWaitForFences(_device, 1, &getCurrentFrame().RenderFence, true, 1000000000)); // 1
-        VK_CHECK("VulkanRenderer::BeginFrame()::vkResetFences", vkResetFences(_device, 1, &getCurrentFrame().RenderFence));                     // 0
-
-        _descriptorSetManager.NextDescriptorFrame();
-
-        VkResult result = vkAcquireNextImageKHR(_device, _swapchain, 1000000000, getCurrentFrame().PresentSemaphore,
-                                                VK_NULL_HANDLE, &getCurrentFrame().SwapchainImageIndex);
-
-        if (result == VK_ERROR_OUT_OF_DATE_KHR ) {
-            recreateSwapchain();
-            return;
-        }
-
-        VK_CHECK("VulkanRenderer::BeginFrame()::vkResetCommandBuffer", vkResetCommandBuffer(getCurrentFrame().MainCommandBuffer, 0));
-
-        VkCommandBuffer cmd = getCurrentFrame().MainCommandBuffer;
-
-        VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-        VK_CHECK("VulkanRenderer::BeginFrame()::vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &beginInfo));
-
-        float flashColour = abs(sin((float) _frameNumber / 120.f));
-
-        VkClearValue clearValue{
-                .color = {0.f, flashColour, flashColour, 1.f}
-        };
-
-        VkClearValue depthClear {
-                .depthStencil = {
-                        .depth = 1.f
-                }
-        };
-        VkClearValue clearValues[] = { clearValue, depthClear };
-
-        VkRenderPassBeginInfo renderPassBeginInfo{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
-        renderPassBeginInfo.renderPass = _renderPass;
-        renderPassBeginInfo.renderArea = {
-                .offset = {
-                        .x = 0,
-                        .y = 0
-                },
-                .extent = _windowExtent
-        };
-
-        renderPassBeginInfo.framebuffer = _framebuffers[getCurrentFrame().SwapchainImageIndex];
-        // connect clear values
-        renderPassBeginInfo.clearValueCount = 2;
-        renderPassBeginInfo.pClearValues = clearValues;
-
-        vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-    }
-
     std::vector<EyePoseInfo> VulkanRenderer::beginFrameVR() {
         if (_rendererSettings.VR) {
             auto* vr = ServiceLocator::GetVRSubsystem();
@@ -903,21 +601,6 @@ namespace OZZ {
         }
 
         return {};
-    }
-
-    void VulkanRenderer::renderFrameWindow(const SceneParams& sceneParams, const std::vector<RenderableObject>& objects) {
-        auto& currentFrame = getCurrentFrame();
-
-        // Ensure there's a uniform buffer to hold camera data
-        if (!currentFrame.CameraData) {
-            currentFrame.CameraData = CreateUniformBuffer();
-        }
-
-        // Upload the camera data to the buffer
-        // Usually I would avoid casting away the const -- but I did it here to save effort in making overloads
-        currentFrame.CameraData->UploadData(const_cast<int*>(reinterpret_cast<const int*>(&sceneParams.Camera)), sizeof(sceneParams.Camera));
-
-        renderObjects(currentFrame.CommandPool, currentFrame.MainCommandBuffer, currentFrame.CameraData, objects);
     }
 
     void VulkanRenderer::renderFrameVR(const std::vector<EyePoseInfo>& eyeInfo, SceneParams& sceneParams, const std::vector<RenderableObject>& objects) {
@@ -1035,46 +718,6 @@ namespace OZZ {
         }
     }
 
-    void VulkanRenderer::endFrameWindow() {
-        auto cmd = getCurrentFrame().MainCommandBuffer;
-        vkCmdEndRenderPass(cmd);
-        VK_CHECK("VulkanRenderer::EndFrame()::vkEndCommandBuffer", vkEndCommandBuffer(cmd));
-
-        VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-
-        VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        submit.pWaitDstStageMask = &waitStage;
-
-        submit.waitSemaphoreCount = 1;
-        submit.pWaitSemaphores = &getCurrentFrame().PresentSemaphore;
-
-        submit.signalSemaphoreCount = 1;
-        submit.pSignalSemaphores = &getCurrentFrame().RenderSemaphore;
-
-        submit.commandBufferCount = 1;
-        submit.pCommandBuffers = &getCurrentFrame().MainCommandBuffer;
-
-        vkQueueSubmit(_graphicsQueue, 1, &submit, getCurrentFrame().RenderFence);
-
-        VkPresentInfoKHR presentInfoKhr{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
-        presentInfoKhr.swapchainCount = 1;
-        presentInfoKhr.pSwapchains = &_swapchain;
-
-        presentInfoKhr.waitSemaphoreCount = 1;
-        presentInfoKhr.pWaitSemaphores = &getCurrentFrame().RenderSemaphore;
-
-        presentInfoKhr.pImageIndices = &getCurrentFrame().SwapchainImageIndex;
-
-        auto result = vkQueuePresentKHR(_graphicsQueue, &presentInfoKhr);
-
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || _recreateFrameBuffer) {
-            _recreateFrameBuffer = false;
-            recreateSwapchain();
-        } else {
-            VK_CHECK("VulkanRenderer::EndFrame()::vkQueuePresentKHR", result);
-        }
-    }
-
     void VulkanRenderer::endFrameVR(const std::vector<EyePoseInfo>& eyePoses) {
         if (_rendererSettings.VR) {
             auto *vr = ServiceLocator::GetVRSubsystem();
@@ -1091,7 +734,7 @@ namespace OZZ {
 
 
     void VulkanRenderer::renderObjects(VkCommandPool commandPool, VkCommandBuffer commandBuffer, std::shared_ptr<UniformBuffer> cameraBuffer, const std::vector<RenderableObject>& objects) {
-// Render all the objects
+    // Render all the objects
         for (auto& object : objects) {
             auto mesh = object.Mesh.lock();
 
@@ -1297,13 +940,9 @@ namespace OZZ {
         return indices;
     }
 
-    FrameData &VulkanRenderer::getCurrentFrame() {
-        return _frames[getCurrentFrameNumber()];
+    VkRenderPass VulkanRenderer::GetActiveRenderPass() {
+        if (_rendererExtension) return _rendererExtension->GetRenderPass();
+
+        return VK_NULL_HANDLE;
     }
-
-    uint32_t VulkanRenderer::getCurrentFrameNumber() const {
-        return _frameNumber % MAX_FRAMES_IN_FLIGHT;
-    }
-
-
 }
