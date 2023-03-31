@@ -114,28 +114,13 @@ namespace OZZ {
 
         pipelineBuilder._inputAssembly = VulkanInitializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
-        // build the viewport
-        pipelineBuilder._viewport = {
-                .x = 0.f,
-                .y = 0.f,
-                .width = static_cast<float>(_renderer->_windowExtent.width),
-                .height = static_cast<float>(_renderer->_windowExtent.height),
-                .minDepth = 0.f,
-                .maxDepth = 1.f
-        };
-
-        pipelineBuilder._scissor = {
-                .offset = {0 , 0},
-                .extent = _renderer->_windowExtent
-        };
-
         pipelineBuilder._rasterizer = VulkanInitializers::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL);
         pipelineBuilder._multisampling = VulkanInitializers::PipelineMultisampleStateCreateInfo();
         pipelineBuilder._colorBlendAttachment = VulkanInitializers::PipelineColorBlendAttachmentState();
         pipelineBuilder._pipelineLayout = _pipelineLayout;
         pipelineBuilder._depthStencil = VulkanInitializers::DepthStencilCreateInfo(true, true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
-        _pipeline = pipelineBuilder.BuildPipeline(_renderer->_device, _renderer->_rendererSettings.VR ? _renderer->_vrRenderPass : _renderer->_renderPass);
+        _pipeline = pipelineBuilder.BuildPipeline(_renderer->_device, _renderer->GetActiveRenderPass());
 
         vkDestroyShaderModule(_renderer->_device, fragmentShaderModule, nullptr);
         vkDestroyShaderModule(_renderer->_device, vertexShaderModule, nullptr);

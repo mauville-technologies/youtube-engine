@@ -44,6 +44,9 @@ target_sources(${PROJECT_NAME}
 
         src/rendering/images.cpp
         src/rendering/stbi.cpp
+
+        src/rendering/vulkan/renderer_extensions/vulkan_vr_renderer_extension.cpp
+        src/rendering/vulkan/renderer_extensions/vulkan_window_renderer_extension.cpp
         src/rendering/vulkan/vulkan_buffer.cpp
         src/rendering/vulkan/vulkan_descriptor_set_manager.cpp
         src/rendering/vulkan/vulkan_includes.h
